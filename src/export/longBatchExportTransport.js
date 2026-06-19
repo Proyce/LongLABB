@@ -8,6 +8,7 @@ export const LONG_BATCH_TRANSPORT_OMITTED_FIELDS = Object.freeze([
   'longComboDetails',
   'longWinningSetupMatchDetails',
   'entrySnapshotFieldStatus',
+  'entryTickSnapshot',
 ]);
 
 export function createLongBatchWorkerSnapshot(trades) {

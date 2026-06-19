@@ -21,6 +21,8 @@ export function downloadBlob(blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+const WORKER_TIMEOUT_MS = 5 * 60 * 1_000;
+
 export function exportLongBatchAnalysisZip({
   trades,
   descriptor,
@@ -37,9 +39,15 @@ export function exportLongBatchAnalysisZip({
     const worker = new Worker(new URL('./longBatchExport.worker.js', import.meta.url), { type: 'module' });
     let settled = false;
 
+    const timer = setTimeout(
+      () => finish(() => reject(new Error('Batch export timed out — worker did not respond within 5 minutes.'))),
+      WORKER_TIMEOUT_MS,
+    );
+
     const finish = callback => {
       if (settled) return;
       settled = true;
+      clearTimeout(timer);
       worker.terminate();
       callback();
     };

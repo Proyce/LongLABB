@@ -3438,11 +3438,27 @@ function AppCore() {
   };
 
   // ── Export helpers (canonical schema — no manual CSV_COLS) ──────────────────
-  const dlCSV  = (src, name) => downloadBlob(buildLongTradeCsvBlob(src), name);
-  const dlJSON = (src, name) => downloadBlob(buildLongTradeJsonBlob(src), name);
+  const dlCSV = (src, name) => {
+    try {
+      downloadBlob(buildLongTradeCsvBlob(src), name);
+      return true;
+    } catch (err) {
+      toast(`CSV export failed: ${err?.message ?? String(err)}`, { tone: "warn" });
+      return false;
+    }
+  };
+  const dlJSON = (src, name) => {
+    try {
+      downloadBlob(buildLongTradeJsonBlob(src), name);
+      return true;
+    } catch (err) {
+      toast(`JSON export failed: ${err?.message ?? String(err)}`, { tone: "warn" });
+      return false;
+    }
+  };
 
-  const exportCSV  = () => { dlCSV(rankedSamples,  `longlab_all_${Date.now()}.csv`);  toast("Compact CSV exported.", { tone: "info" }); };
-  const exportJSON = () => { dlJSON(rankedSamples, `longlab_all_${Date.now()}.json`); toast("Compact JSON exported.", { tone: "info" }); };
+  const exportCSV  = () => { if (dlCSV(rankedSamples,  `longlab_all_${Date.now()}.csv`))  toast("Compact CSV exported.", { tone: "info" }); };
+  const exportJSON = () => { if (dlJSON(rankedSamples, `longlab_all_${Date.now()}.json`)) toast("Compact JSON exported.", { tone: "info" }); };
 
   // ── Derived state ────────────────────────────────────────────────────────────
   const rankedSamples = useMemo(() => {

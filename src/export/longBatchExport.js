@@ -194,6 +194,27 @@ function rowsToCsv(headers, rows) {
   ].join('\n');
 }
 
+const RUN_SUMMARY_HEADERS = Object.freeze([
+  'run', 'totalTrades', 'closedTrades', 'activeTrades', 'researchEligibleClosed', 'excludedClosed',
+  'gainers', 'losers', 'uniqueSymbols', 'totalFeeAdjustedNormPnlPct', 'avgFeeAdjustedNormPnlPct',
+  'feeAdjustedWinRatePct', 'bestFeeAdjustedNormPnlPct', 'worstFeeAdjustedNormPnlPct',
+  'stopLossCount', 'profitLockCount', 'trailingExitCount', 'timeoutCount', 'runStopCount',
+  'startedAt', 'endedAt',
+]);
+const EXIT_SUMMARY_HEADERS = Object.freeze([
+  'closeReason', 'tradeCount', 'researchEligibleCount', 'avgFeeAdjustedNormPnlPct',
+  'totalFeeAdjustedNormPnlPct', 'feeAdjustedWinRatePct',
+]);
+const SIDE_SUMMARY_HEADERS = Object.freeze([
+  'side', 'tradeCount', 'closedCount', 'activeCount', 'researchEligibleCount',
+  'avgFeeAdjustedNormPnlPct', 'totalFeeAdjustedNormPnlPct', 'feeAdjustedWinRatePct',
+]);
+const SIGNAL_SUMMARY_HEADERS = Object.freeze([
+  'category', 'signalId', 'matchedTradeCount', 'researchEligibleClosedCount',
+  'avgFeeAdjustedNormPnlPct', 'totalFeeAdjustedNormPnlPct', 'feeAdjustedWinRatePct',
+  'positiveRunRatePct', 'observedRunCount',
+]);
+
 function closeReasonOf(trade) {
   return String(trade?.canonicalCloseReason ?? trade?.closeReason ?? (trade?.closed ? 'UNKNOWN' : 'ACTIVE'));
 }
@@ -569,13 +590,13 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
     [`${root}/excluded/excluded_trades.csv`]: buildLongTradeCsvString(excluded, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
     [`${root}/active/open_trades.csv`]: buildLongTradeCsvString(active, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
     [`${root}/forensics/exit_events.jsonl`]: forensicJsonl,
-    [`${root}/summary/run_summary.csv`]: rowsToCsv(Object.keys(runSummaries[0] ?? { run: '' }), runSummaries),
+    [`${root}/summary/run_summary.csv`]: rowsToCsv(RUN_SUMMARY_HEADERS, runSummaries),
     [`${root}/summary/batch_summary.json`]: JSON.stringify(batchSummary, null, 2),
     [`${root}/summary/data_quality_summary.csv`]: rowsToCsv(['issue', 'count'], qualitySummary),
     [`${root}/summary/field_coverage.csv`]: rowsToCsv(['key', 'header', 'presentCount', 'missingCount', 'coveragePct'], fieldCoverage),
-    [`${root}/summary/exit_summary.csv`]: rowsToCsv(Object.keys(exitSummary[0] ?? { closeReason: '' }), exitSummary),
-    [`${root}/summary/side_summary.csv`]: rowsToCsv(Object.keys(sideSummary[0] ?? { side: '' }), sideSummary),
-    [`${root}/summary/signal_summary.csv`]: rowsToCsv(Object.keys(signalSummary[0] ?? { category: '', signalId: '' }), signalSummary),
+    [`${root}/summary/exit_summary.csv`]: rowsToCsv(EXIT_SUMMARY_HEADERS, exitSummary),
+    [`${root}/summary/side_summary.csv`]: rowsToCsv(SIDE_SUMMARY_HEADERS, sideSummary),
+    [`${root}/summary/signal_summary.csv`]: rowsToCsv(SIGNAL_SUMMARY_HEADERS, signalSummary),
     [`${root}/schema/columns.json`]: JSON.stringify({
       exportSchemaVersion: LONG_TRADE_EXPORT_VERSION,
       columns: LONG_BATCH_ANALYSIS_COLUMNS.map(column => ({ key: column.key, header: column.header })),
