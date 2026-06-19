@@ -7,6 +7,7 @@ export const HEAVY_DUPLICATE_TELEMETRY_FIELDS = Object.freeze([
   'longComboDetails',
   'longWinningSetupMatchDetails',
   'entrySnapshotFieldStatus',
+  'entryTickSnapshot',
 ]);
 
 export const TRADE_STATIC_MANIFEST_FIELDS = Object.freeze([
@@ -69,6 +70,53 @@ export const DEFAULT_COMPACT_EXPORT_EXCLUSIONS = Object.freeze([
   'longFilterCoveragePct',
 ]);
 
+const TICK_RUNTIME_KEEP_FIELDS = new Set([
+  'marketTickPrimaryPattern',
+  'marketTickAtrTier',
+  'marketTickDirectionalBiasScore',
+  'marketTickDirectionConfidenceScore',
+  'marketTickDirectionVerdict',
+  'marketTickDirection3s',
+  'marketTickDirection10s',
+  'marketTickNetMoveBps3s',
+  'marketTickNetMoveBps10s',
+  'marketTickEfficiency3s',
+  'marketTickEfficiency10s',
+  'marketTickVelocityBpsPerSec3s',
+  'marketTickAccelerationBpsPerSec2_3s',
+  'marketTickCurrentUpStreak',
+  'marketTickCurrentDownStreak',
+  'marketTickReversalCount10',
+  'marketTickSequenceSignature10',
+  'marketTickAggressorFlowLabel3s',
+  'marketTickAggressorVolumeImbalance3s',
+  'marketTickBookImbalanceMean3s',
+  'marketTickTradeBookAgreement3s',
+  'marketTickEvidenceAgreementLabel',
+  'marketTickNeutralThresholdBps',
+  'marketTickOutcomeCoveragePct',
+  'marketTickOutcomeAuditVersion',
+  'marketTickPromotionStatus',
+  'marketTickCanAffectExecution',
+  'marketTickExecutionApplied',
+]);
+
+const TICK_RUNTIME_DROP_FIELDS = new Set([
+  'entryTickSnapshotCapturedAt',
+  'entryTickWindowEndAt',
+  'entryTickOldestEventAt',
+  'entryTickNewestEventAt',
+  'entryTickTimestampBasis',
+  'entryTickMissingReasons',
+  'entryTickRequiredFieldCount',
+  'entryTickKnownFieldCount',
+  'entryTickTradeEventCount',
+  'entryTickBookEventCount',
+  'entryTickAtrPctObserved',
+  'entryTickSpreadPctObserved',
+  'highAtrDirectionalOpportunityReasons',
+]);
+
 export function compactLongTradeForRuntime(trade) {
   if (!trade || typeof trade !== 'object') return trade;
   const compact = { ...trade };
@@ -78,7 +126,14 @@ export function compactLongTradeForRuntime(trade) {
   for (const field of TRADE_STATIC_MANIFEST_FIELDS) delete compact[field];
   delete compact.longAesConfidenceDistinctValueCountAtRun;
   if (compact.cvdStateCurrent === compact.cvdStateAtEntry) delete compact.cvdStateCurrent;
-  compact.telemetryStorageProfile = 'LONG_TELEMETRY_V8_COMPACT';
+  for (const key of Object.keys(compact)) {
+    const isOutcome = /^(marketTickForward|marketTickPrediction|marketTickOutcomeSource)/.test(key);
+    if (key.startsWith('marketTick') && !isOutcome && !TICK_RUNTIME_KEEP_FIELDS.has(key)) {
+      delete compact[key];
+    }
+    if (TICK_RUNTIME_DROP_FIELDS.has(key)) delete compact[key];
+  }
+  compact.telemetryStorageProfile = 'LONG_TELEMETRY_V9_COMPACT';
   return compact;
 }
 

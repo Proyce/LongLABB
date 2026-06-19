@@ -39,9 +39,14 @@ function isKnown(value) {
 }
 
 function classifyDataQuality(trade) {
-  const known = ENTRY_PREDICTIVE_SNAPSHOT_FIELDS.filter(field => isKnown(trade?.[field])).length;
-  const pct = ENTRY_PREDICTIVE_SNAPSHOT_FIELDS.length
-    ? (known / ENTRY_PREDICTIVE_SNAPSHOT_FIELDS.length) * 100
+  // Genuine tick coverage is tracked separately during V1 and must not
+  // downgrade the historical/global Long filter quality verdict.
+  const globalFields = ENTRY_PREDICTIVE_SNAPSHOT_FIELDS.filter(field =>
+    !/^(marketTick|entryTick|highAtrDirectional|highAtrTick|longTick)/.test(field)
+  );
+  const known = globalFields.filter(field => isKnown(trade?.[field])).length;
+  const pct = globalFields.length
+    ? (known / globalFields.length) * 100
     : 0;
   if (pct >= 90) return DATA_QUALITY.COMPLETE;
   if (pct >= 50) return DATA_QUALITY.PARTIAL;
@@ -56,6 +61,16 @@ function classifyRecordSchema(trade, quality) {
     (typeof trade?.microMomentumLabel === "string" && !trade?.longMicroMomentumLabel)
   ) {
     return RECORD_SCHEMA_CLASS.LEGACY_SHORT_SEMANTIC;
+  }
+  if (trade?.entryResearchSchemaVersion === "LONG_ENTRY_RESEARCH_V9") {
+    return quality === DATA_QUALITY.COMPLETE
+      ? RECORD_SCHEMA_CLASS.NATIVE_LONG_V9
+      : RECORD_SCHEMA_CLASS.PARTIAL_LONG;
+  }
+  if (trade?.entryResearchSchemaVersion === "LONG_ENTRY_RESEARCH_V8") {
+    return quality === DATA_QUALITY.COMPLETE
+      ? RECORD_SCHEMA_CLASS.NATIVE_LONG_V8
+      : RECORD_SCHEMA_CLASS.PARTIAL_LONG;
   }
   if (trade?.entryResearchSchemaVersion === "LONG_ENTRY_RESEARCH_V7") {
     return quality === DATA_QUALITY.COMPLETE
@@ -78,6 +93,17 @@ function classifyRecordSchema(trade, quality) {
       : RECORD_SCHEMA_CLASS.PARTIAL_LONG;
   }
   return RECORD_SCHEMA_CLASS.UNKNOWN_SCHEMA;
+}
+
+export function isNativeLongV9(trade) {
+  return (
+    trade?.longFilterSnapshotVersion === LONG_FILTER_SNAPSHOT_VERSION &&
+    trade?.filterRecordSchemaClass === RECORD_SCHEMA_CLASS.NATIVE_LONG_V9
+  );
+}
+
+export function isNativeLongV8(trade) {
+  return trade?.filterRecordSchemaClass === RECORD_SCHEMA_CLASS.NATIVE_LONG_V8;
 }
 
 /**
@@ -131,8 +157,8 @@ export function isNativeLongV4(trade) {
   return trade?.filterRecordSchemaClass === RECORD_SCHEMA_CLASS.NATIVE_LONG_V4;
 }
 
-// Compatibility alias for older callers. Prefer isNativeLongV7 for current records.
-export const isNativeLongV1 = isNativeLongV7;
+// Compatibility alias for older callers. Prefer isNativeLongV9 for current records.
+export const isNativeLongV1 = isNativeLongV9;
 
 export function isLegacyShortSemantic(trade) {
   return trade?.legacyShortSemanticData === true ||

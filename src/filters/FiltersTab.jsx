@@ -32,6 +32,7 @@ import { FilterCoverageDrawer } from "./components/FilterCoverageDrawer.jsx";
 import { ActiveFilterSummary } from "./components/ActiveFilterSummary.jsx";
 import { SmartTable, EmptyState, usePaginator, Pager } from "../SmartTable.jsx";
 import { createWinningSetupFilterState, clearWinningSetupFilterState } from "./longWinningSetups.js";
+import TickDirectionLabPanel from "../tickDirection/TickDirectionLabPanel.jsx";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────────────────────
 import { color as _tk, font as _tkFont } from "../ui/tokens.js";
@@ -613,11 +614,12 @@ const INNER_TABS = [
   { id: "trades",             label: "Trades" },
   { id: "cockpit",            label: "Cockpit Tools" },
   { id: "policyV2",           label: "Shadow Decision (LOG ONLY)" },
+  { id: "tickDirection",      label: "⚡ Tick Direction Lab" },
 ];
 
 function InnerNav({ active, onChange }) {
   return (
-    <div style={{ display: "flex", gap: 2, marginBottom: 16, borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 2, marginBottom: 16, borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
       {INNER_TABS.map(t => (
         <button key={t.id} onClick={() => onChange(t.id)} style={{
           fontFamily: mono, fontSize: 9, fontWeight: 700, letterSpacing: 1,
@@ -1602,7 +1604,7 @@ function savePersistedState(filterState, quickFilters) {
   } catch { /* storage quota exceeded — ignore */ }
 }
 
-export default function FiltersTab({ samples }) {
+export default function FiltersTab({ samples, tickDirectionHealth = {} }) {
   const persisted = useMemo(loadPersistedState, []);
   // URL hash state (#f=...) takes precedence over localStorage on first load (spec §20).
   const urlState = useMemo(() => {
@@ -2019,6 +2021,9 @@ export default function FiltersTab({ samples }) {
       )}
       {innerTab === "policyV2" && (
         <ShadowDecisionPanel closedSamples={closedSamples} />
+      )}
+      {innerTab === "tickDirection" && (
+        <TickDirectionLabPanel samples={samples} streamHealth={tickDirectionHealth} />
       )}
     </div>
   );

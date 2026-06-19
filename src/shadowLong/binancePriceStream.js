@@ -12,6 +12,14 @@
 // position lifecycle management independent of REST rate limits, including for
 // quiet symbols that may not print aggregate trades for several seconds.
 
+import {
+  BINANCE_FUTURES_TICK_SCHEMA_VERSION,
+  MAX_REASONABLE_BOOK_SPREAD_PCT,
+  parseAggTradeTick,
+  parseBookTickerTick,
+  parseMarkPriceTick,
+} from "../marketData/binanceFuturesTickParsers.js";
+
 const BOOK_WS_BASE = "wss://fstream.binance.com/public/stream";
 const TRADE_WS_BASE = "wss://fstream.binance.com/market/stream";
 const MARK_WS_URL = "wss://fstream.binance.com/market/stream?streams=!markPrice@arr@1s";
@@ -21,96 +29,10 @@ const MAX_RECONNECT_ATTEMPTS = 20;
 const MEMBERSHIP_REBUILD_DEBOUNCE_MS = 75;
 const PRIMARY_TICK_GRACE_MS = 1_500;
 
-export const BINANCE_PRICE_STREAM_SCHEMA_VERSION =
-  'BINANCE_PRICE_STREAM_V4_2026_06_ROUTED_TRIPLE_SOCKET';
-export const MAX_REASONABLE_BOOK_SPREAD_PCT = 20;
+export const BINANCE_PRICE_STREAM_SCHEMA_VERSION = BINANCE_FUTURES_TICK_SCHEMA_VERSION;
+export { MAX_REASONABLE_BOOK_SPREAD_PCT, parseAggTradeTick, parseBookTickerTick, parseMarkPriceTick };
 
-const finitePositive = value => {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
-
-const upperSymbol = value => String(value ?? '').trim().toUpperCase();
 const lowerSymbol = value => String(value ?? '').trim().toLowerCase();
-
-/**
- * Parse a Binance USD-M Futures bookTicker payload.
- *
- * Binance field names are case-sensitive:
- *   b = best bid PRICE
- *   B = best bid QUANTITY
- *   a = best ask PRICE
- *   A = best ask QUANTITY
- */
-export function parseBookTickerTick(data, observedAt = Date.now()) {
-  const symbol = upperSymbol(data?.s);
-  if (!symbol) return null;
-
-  const bid = finitePositive(data?.b);
-  const ask = finitePositive(data?.a);
-  if (bid == null || ask == null || ask < bid) return null;
-
-  const mid = (bid + ask) / 2;
-  const spreadPct = mid > 0 ? ((ask - bid) / mid) * 100 : Number.POSITIVE_INFINITY;
-  if (!Number.isFinite(spreadPct) || spreadPct > MAX_REASONABLE_BOOK_SPREAD_PCT) return null;
-
-  const eventTime = Number.isFinite(Number(data?.E)) ? Number(data.E) : observedAt;
-  return Object.freeze({
-    symbol,
-    bid,
-    ask,
-    mid,
-    price: mid,
-    bidQty: finitePositive(data?.B),
-    askQty: finitePositive(data?.A),
-    spreadPct,
-    source: 'BOOK_TICKER',
-    precision: 'REALTIME',
-    schemaValidated: true,
-    priceFieldMap: 'b=bidPrice,a=askPrice,B=bidQty,A=askQty',
-    priceStreamSchemaVersion: BINANCE_PRICE_STREAM_SCHEMA_VERSION,
-    t: eventTime,
-    receivedAt: observedAt,
-  });
-}
-
-/** Parse a routed USD-M aggTrade payload. */
-export function parseAggTradeTick(data, observedAt = Date.now()) {
-  const symbol = upperSymbol(data?.s);
-  const price = finitePositive(data?.p);
-  if (!symbol || price == null) return null;
-  const eventTime = Number.isFinite(Number(data?.T ?? data?.E))
-    ? Number(data?.T ?? data?.E)
-    : observedAt;
-  return Object.freeze({
-    symbol,
-    price,
-    source: 'AGG_TRADE',
-    precision: 'REALTIME',
-    schemaValidated: true,
-    priceStreamSchemaVersion: BINANCE_PRICE_STREAM_SCHEMA_VERSION,
-    t: eventTime,
-    receivedAt: observedAt,
-  });
-}
-
-/** Parse one item from Binance's all-symbol mark-price array stream. */
-export function parseMarkPriceTick(data, observedAt = Date.now()) {
-  const symbol = upperSymbol(data?.s);
-  const price = finitePositive(data?.p);
-  if (!symbol || price == null) return null;
-  const eventTime = Number.isFinite(Number(data?.E)) ? Number(data.E) : observedAt;
-  return Object.freeze({
-    symbol,
-    price,
-    source: 'MARK_PRICE_1S',
-    precision: 'PROTECTIVE',
-    schemaValidated: true,
-    priceStreamSchemaVersion: BINANCE_PRICE_STREAM_SCHEMA_VERSION,
-    t: eventTime,
-    receivedAt: observedAt,
-  });
-}
 
 function makeSocketState() {
   return {

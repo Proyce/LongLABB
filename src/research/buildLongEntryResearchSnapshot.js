@@ -34,7 +34,7 @@ import { computeLongAesV2Shadow } from '../scoring/longAbsoluteEntryScore/longAb
 import { scoreLongCandidateRunner } from '../scoring/longCandidateRunner/index.js';
 import { scoreLongPostFee10Entry } from '../scoring/longPostFee10/index.js';
 import { evaluateSniperLongGateLogOnly } from '../longGate/sniperLongGateLogOnly.js';
-import { evaluateLongCombos } from '../combos/longComboRegistry.js';
+import { evaluateLongCombos, evaluateLongTickResearchHypotheses } from '../combos/longComboRegistry.js';
 import { evaluateLongWinningSetupMatches } from '../filters/evaluateLongWinningSetupMatches.js';
 import { freezeLongFilterSnapshot } from '../filters/longFilterSnapshot.js';
 import { computeAdaptiveAes } from '../entryPolicy/adaptiveAes.js';
@@ -48,6 +48,10 @@ import {
 } from './longEvidenceSemantics.js';
 import { buildEntrySnapshotProvenance } from './entrySnapshotProvenance.js';
 import { deriveLongMicroMomentumLabel } from './longWinningSignals.js';
+import {
+  enrichFrozenTickDirectionSnapshot,
+  extractFrozenTickDirectionSnapshot,
+} from '../tickDirection/tickDirectionSnapshot.js';
 import {
   LONG_SCORE_REGISTRY_VERSION,
   LONG_FILTER_REGISTRY_VERSION,
@@ -237,9 +241,18 @@ export function buildLongEntryResearchSnapshot({
     ...candidateSeed,
     longMicroMomentumLabel: deriveLongMicroMomentumLabel(candidateSeed),
   };
+  const tickDirectionSnapshot = candidate.entryTickSnapshotVersion
+    ? enrichFrozenTickDirectionSnapshot(
+        extractFrozenTickDirectionSnapshot(candidate),
+        candidate,
+      )
+    : null;
+  const normalizedCandidate = tickDirectionSnapshot
+    ? { ...candidate, ...tickDirectionSnapshot }
+    : candidate;
 
   // Stage 1: Normalize raw telemetry into canonical facts.
-  const facts     = normalizeLongEntryFacts(candidate, computedAt);
+  const facts     = normalizeLongEntryFacts(normalizedCandidate, computedAt);
   const flatFacts = flattenLongEntryFacts(facts);
 
   // Stage 2: Initial data quality check.
@@ -247,7 +260,7 @@ export function buildLongEntryResearchSnapshot({
 
   // ── ONE cumulative working trade — every stage enriches this object ─────────
   let workingTrade = {
-    ...candidate,
+    ...normalizedCandidate,
     ...flatFacts,
   };
 
@@ -471,6 +484,17 @@ export function buildLongEntryResearchSnapshot({
   }
   workingTrade = { ...workingTrade, ...comboResult };
 
+  // Stage 14t: Evaluate genuine-tick research hypotheses separately from the
+  // validated combo registries. This stage is observational and cannot feed any
+  // scorer, gate, policy, sizing, or execution decision.
+  let tickHypothesisResult = null;
+  try {
+    tickHypothesisResult = evaluateLongTickResearchHypotheses(workingTrade);
+  } catch (err) {
+    componentErrors.push({ component: 'LONG_TICK_RESEARCH_HYPOTHESES', message: err?.message ?? String(err) });
+  }
+  workingTrade = { ...workingTrade, ...tickHypothesisResult };
+
   // Stage 14a: Derive independent evidence, LONG-aware CVD semantics, and
   // conditional ATR context. These are research-only and cannot affect execution.
   const cvdSemantics = deriveLongCvdSemantics(workingTrade);
@@ -600,6 +624,7 @@ export function buildLongEntryResearchSnapshot({
     pnlModelVersion: LONG_PNL_MODEL_VERSION,
     longParentBucket: workingTrade.longParentBucket ?? null,
     longSubBucket:    workingTrade.longSubBucket ?? null,
+    ...(tickDirectionSnapshot ?? {}),
 
     // ── Gate ───────────────────────────────────────────────────────────────────
     longGateWouldPass:     gate?.longGateWouldPass ?? null,
@@ -668,6 +693,7 @@ export function buildLongEntryResearchSnapshot({
     // ── Sniper + combos ─────────────────────────────────────────────────────────
     ...sniperLongGate,
     ...comboResult,
+    ...tickHypothesisResult,
     ...cvdSemantics,
     ...evidenceSummary,
     ...atrContext,
@@ -754,6 +780,8 @@ export function buildLongEntryResearchSnapshot({
     postFee10,
     sniperLongGate,
     comboResult,
+    tickMicrostructure: tickDirectionSnapshot,
+    tickHypothesisResult,
     cvdSemantics,
     evidenceSummary,
     atrContext,

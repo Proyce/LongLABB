@@ -118,7 +118,9 @@ describe('P0#4: compact filter snapshot', () => {
     const fsKeys = Object.keys(fs).length;
     const tradeKeys = Object.keys(t).length;
     expect(fsKeys).toBeLessThan(tradeKeys);
-    expect(fsKeys).toBeLessThan(120);
+    // V9 adds a bounded set of entry-frozen tick microstructure scalars while
+    // still excluding raw event arrays and the full research snapshot.
+    expect(fsKeys).toBeLessThan(160);
   });
 
   it('compact snapshot keeps canonical fields + shadow verdict, drops legacy', () => {

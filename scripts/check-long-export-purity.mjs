@@ -55,10 +55,15 @@ const REQUIRED_EXPORT_KEYS = new Set([
   "positionLifecycleRestFallbackStatus",
   "positionLifecycleFallbackReason",
   "marketPriceStreamHealthy",
+  "entryTickDataQuality",
+  "entryTickCanonicalSource",
+  "marketTickDirectionVerdict",
+  "marketTickPrimaryPattern",
+  "marketTickPredictionResult5s",
 ]);
 
 // ── Required export schema version ────────────────────────────────────────────
-const REQUIRED_SCHEMA_VERSION = "LONG_TRADE_EXPORT_V8";
+const REQUIRED_SCHEMA_VERSION = "LONG_TRADE_EXPORT_V9";
 
 let errors = 0;
 
