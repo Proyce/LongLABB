@@ -1,0 +1,26 @@
+{
+  "run": 903,
+  "profile": "STRESS_SL_AND_FALLBACK",
+  "durationSeconds": 60,
+  "tradeCount": 50,
+  "closedCount": 50,
+  "invalidFinalPnlCount": 0,
+  "heavyDuplicateFieldCount": 0,
+  "lifecycleTicks": 2636,
+  "fallbackTicks": 19,
+  "invalidTicks": 0,
+  "renderGuardChecks": 120,
+  "closeReasons": {
+    "STOP_LOSS": 13,
+    "TIMEOUT": 37
+  },
+  "totalFeeAdjustedNormPnlPct": -9.676939,
+  "avgFeeAdjustedNormPnlPct": -0.193539,
+  "winRatePct": 44,
+  "fastScanMaxMs": 0.014,
+  "fastScanP95Ms": 0.014,
+  "deepScanMaxMs": 80.746,
+  "maxEventLoopLagMs": 2.078,
+  "memoryPeakHeapMiB": 10.035,
+  "passed": true
+}

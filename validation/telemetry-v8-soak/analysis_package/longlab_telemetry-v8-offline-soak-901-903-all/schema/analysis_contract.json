@@ -1,0 +1,9 @@
+{
+  "primaryMetric": "feeAdjustedNormPnlPct",
+  "researchEligibility": "closed === true && strategyResearchEligible !== false && finalizationDataQuality !== INVALID",
+  "deduplication": "Newest/final state per tradeId/id",
+  "missingValuePolicy": "Missing is preserved as missing and is never converted to false",
+  "payloadPolicy": "Selected batch only; compact V8 scalar rows with sparse exceptional forensics and manifest-level static metadata",
+  "runBatchSize": 20,
+  "sideFilter": "all"
+}

@@ -1,0 +1,25 @@
+{
+  "run": 902,
+  "profile": "CHOP_AND_TIMEOUT",
+  "durationSeconds": 300,
+  "tradeCount": 50,
+  "closedCount": 50,
+  "invalidFinalPnlCount": 0,
+  "heavyDuplicateFieldCount": 0,
+  "lifecycleTicks": 15000,
+  "fallbackTicks": 0,
+  "invalidTicks": 0,
+  "renderGuardChecks": 600,
+  "closeReasons": {
+    "TIMEOUT": 50
+  },
+  "totalFeeAdjustedNormPnlPct": -4.092746,
+  "avgFeeAdjustedNormPnlPct": -0.081855,
+  "winRatePct": 34,
+  "fastScanMaxMs": 0.013,
+  "fastScanP95Ms": 0.013,
+  "deepScanMaxMs": 349.253,
+  "maxEventLoopLagMs": 13.571,
+  "memoryPeakHeapMiB": 23.288,
+  "passed": true
+}

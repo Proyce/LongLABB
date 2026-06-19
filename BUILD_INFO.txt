@@ -1,0 +1,14 @@
+LongLAB Telemetry V8 cleanup + long-session stability build
+Version: 1.0.4
+Built: 2026-06-17
+Export schema: LONG_TRADE_EXPORT_V8
+Entry research schema: LONG_ENTRY_RESEARCH_V8
+Filter snapshot schema: LONG_FILTER_SNAPSHOT_V8
+Batch export: LONG_BATCH_ANALYSIS_V3_TELEMETRY_V8
+Exit system: LONG_EXIT_SYSTEM_V4_2026_06
+Price stream schema: BINANCE_PRICE_STREAM_V4_2026_06_ROUTED_TRIPLE_SOCKET
+Default export columns: 267 unique
+Uploaded 100-trade JSON reduction: 87.42% (8.51 MiB -> 1.07 MiB)
+Validation: production build; 92 test files / 1449 tests; runtime/filter/export purity PASS
+Soak: 3 concurrent real-time 5-minute deterministic runs; 150/150 closed; zero invalid PnL; zero heavy duplicate fields
+Network boundary: validation environment could not reach Binance, so soak profiles are deterministic production-module lifecycle tests, not live-market runs

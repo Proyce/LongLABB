@@ -1,0 +1,61 @@
+{
+  "format": "LONG_BATCH_ANALYSIS_V3_TELEMETRY_V8",
+  "purpose": "Analysis-first LongLAB batch export",
+  "generatedAt": "2026-06-17T13:30:35.481Z",
+  "selectedBatch": {
+    "id": "telemetry-v8-offline-soak",
+    "autoRunId": "telemetry-v8-offline-soak",
+    "label": "Telemetry V8 three-run five-minute offline soak",
+    "runs": [
+      901,
+      902,
+      903
+    ],
+    "runCount": 3,
+    "tradeCount": 150,
+    "startedAt": "2026-06-17T13:29:36.219Z",
+    "endedAt": "2026-06-17T13:30:36.219Z"
+  },
+  "sideFilter": "all",
+  "counts": {
+    "runs": 3,
+    "trades": 150,
+    "forensicEvents": 0,
+    "files": 22
+  },
+  "telemetryStorageProfile": "LONG_TELEMETRY_V8_COMPACT",
+  "canonicalVersions": {
+    "tradeSchemaVersion": "LONG_TRADE_EXPORT_V8",
+    "entrySnapshotSchemaVersion": "LONG_ENTRY_RESEARCH_V8",
+    "scoreRegistryVersion": "LONG_SCORE_REGISTRY_V6_2026_06",
+    "filterRegistryVersion": "LONG_FILTER_REGISTRY_V6_2026_06",
+    "labelRegistryVersion": "LONG_LABEL_REGISTRY_V6_2026_06",
+    "comboRegistrySchemaVersion": "LONG_COMBO_REGISTRY_SCHEMA_V3_2026_06",
+    "antiComboRegistryVersion": "LONG_ANTI_COMBO_REGISTRY_V2_2026_06",
+    "winningSetupRegistryVersion": "LONG_WINNING_SETUPS_V2_2026_06",
+    "marketContextVersion": "LONG_MARKET_CONTEXT_V2_2026_06",
+    "exitSystemVersion": "LONG_EXIT_SYSTEM_V4_2026_06",
+    "feeModelVersion": "LONG_FEE_MODEL_V2_2026_06",
+    "pnlModelVersion": "LONG_PNL_MODEL_V2_2026_06"
+  },
+  "files": {
+    "masterCsv": "longlab_telemetry-v8-offline-soak-901-903-all/master/trades.csv",
+    "masterJsonl": "longlab_telemetry-v8-offline-soak-901-903-all/master/trades.jsonl",
+    "researchCleanCsv": "longlab_telemetry-v8-offline-soak-901-903-all/research_clean/closed_trades.csv",
+    "researchCleanJsonl": "longlab_telemetry-v8-offline-soak-901-903-all/research_clean/closed_trades.jsonl",
+    "excludedCsv": "longlab_telemetry-v8-offline-soak-901-903-all/excluded/excluded_trades.csv",
+    "activeCsv": "longlab_telemetry-v8-offline-soak-901-903-all/active/open_trades.csv",
+    "runSummaryCsv": "longlab_telemetry-v8-offline-soak-901-903-all/summary/run_summary.csv",
+    "batchSummaryJson": "longlab_telemetry-v8-offline-soak-901-903-all/summary/batch_summary.json",
+    "qualitySummaryCsv": "longlab_telemetry-v8-offline-soak-901-903-all/summary/data_quality_summary.csv",
+    "fieldCoverageCsv": "longlab_telemetry-v8-offline-soak-901-903-all/summary/field_coverage.csv",
+    "exitSummaryCsv": "longlab_telemetry-v8-offline-soak-901-903-all/summary/exit_summary.csv",
+    "sideSummaryCsv": "longlab_telemetry-v8-offline-soak-901-903-all/summary/side_summary.csv",
+    "signalSummaryCsv": "longlab_telemetry-v8-offline-soak-901-903-all/summary/signal_summary.csv",
+    "schemaJson": "longlab_telemetry-v8-offline-soak-901-903-all/schema/columns.json",
+    "versionsJson": "longlab_telemetry-v8-offline-soak-901-903-all/schema/observed_versions.json",
+    "analysisContractJson": "longlab_telemetry-v8-offline-soak-901-903-all/schema/analysis_contract.json",
+    "forensicExitEventsJsonl": "longlab_telemetry-v8-offline-soak-901-903-all/forensics/exit_events.jsonl",
+    "perRunDirectory": "longlab_telemetry-v8-offline-soak-901-903-all/runs/"
+  }
+}

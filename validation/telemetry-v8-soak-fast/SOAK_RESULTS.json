@@ -1,0 +1,90 @@
+{
+  "startedAt": "2026-06-17T13:29:35.240Z",
+  "finishedAt": "2026-06-17T13:29:36.120Z",
+  "requestedDurationSeconds": 300,
+  "actualWallDurationSeconds": 0.88,
+  "realtime": false,
+  "totalTrades": 150,
+  "compactJsonBytes": 1358472,
+  "avgCompactJsonBytesPerTrade": 9056,
+  "allRunsPassed": true,
+  "summaries": [
+    {
+      "run": 901,
+      "profile": "TREND_AND_TRAIL",
+      "durationSeconds": 300,
+      "tradeCount": 50,
+      "closedCount": 50,
+      "invalidFinalPnlCount": 0,
+      "heavyDuplicateFieldCount": 0,
+      "lifecycleTicks": 15000,
+      "fallbackTicks": 0,
+      "invalidTicks": 0,
+      "renderGuardChecks": 600,
+      "closeReasons": {
+        "TIMEOUT": 50
+      },
+      "totalFeeAdjustedNormPnlPct": 160.803208,
+      "avgFeeAdjustedNormPnlPct": 3.216064,
+      "winRatePct": 100,
+      "fastScanMaxMs": 0.023,
+      "fastScanP95Ms": 0.023,
+      "deepScanMaxMs": 350.732,
+      "maxEventLoopLagMs": 13.571,
+      "memoryPeakHeapMiB": 22.957,
+      "passed": true
+    },
+    {
+      "run": 902,
+      "profile": "CHOP_AND_TIMEOUT",
+      "durationSeconds": 300,
+      "tradeCount": 50,
+      "closedCount": 50,
+      "invalidFinalPnlCount": 0,
+      "heavyDuplicateFieldCount": 0,
+      "lifecycleTicks": 15000,
+      "fallbackTicks": 0,
+      "invalidTicks": 0,
+      "renderGuardChecks": 600,
+      "closeReasons": {
+        "TIMEOUT": 50
+      },
+      "totalFeeAdjustedNormPnlPct": -4.092746,
+      "avgFeeAdjustedNormPnlPct": -0.081855,
+      "winRatePct": 34,
+      "fastScanMaxMs": 0.013,
+      "fastScanP95Ms": 0.013,
+      "deepScanMaxMs": 349.253,
+      "maxEventLoopLagMs": 13.571,
+      "memoryPeakHeapMiB": 23.288,
+      "passed": true
+    },
+    {
+      "run": 903,
+      "profile": "STRESS_SL_AND_FALLBACK",
+      "durationSeconds": 300,
+      "tradeCount": 50,
+      "closedCount": 50,
+      "invalidFinalPnlCount": 0,
+      "heavyDuplicateFieldCount": 0,
+      "lifecycleTicks": 7565,
+      "fallbackTicks": 19,
+      "invalidTicks": 0,
+      "renderGuardChecks": 600,
+      "closeReasons": {
+        "STOP_LOSS": 25,
+        "PROFIT_LOCK": 13,
+        "TIMEOUT": 12
+      },
+      "totalFeeAdjustedNormPnlPct": -17.543499,
+      "avgFeeAdjustedNormPnlPct": -0.35087,
+      "winRatePct": 50,
+      "fastScanMaxMs": 0.009,
+      "fastScanP95Ms": 0.009,
+      "deepScanMaxMs": 348.777,
+      "maxEventLoopLagMs": 13.571,
+      "memoryPeakHeapMiB": 22.629,
+      "passed": true
+    }
+  ]
+}

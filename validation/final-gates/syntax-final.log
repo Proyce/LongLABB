@@ -1,0 +1,5 @@
+
+> longlab@1.0.4 check:all-source-syntax
+> node scripts/check-all-source-syntax.mjs
+
+✓ Syntax OK — 259 files checked (8 workers)

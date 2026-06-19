@@ -1,0 +1,13 @@
+{
+  "sourceFile": "/mnt/data/longlab_current_view_all_1781685843829.json",
+  "tradeCount": 100,
+  "rawJsonBytes": 8921558,
+  "runtimeCompactJsonBytes": 1219807,
+  "defaultV8ExportJsonBytes": 1122281,
+  "defaultV8CsvBytes": 449617,
+  "runtimeReductionPct": 86.33,
+  "defaultExportReductionPct": 87.42,
+  "avgDefaultExportBytesPerTrade": 11223,
+  "heavyFieldsRemainingInDefaultExport": [],
+  "exportColumnCount": 267
+}

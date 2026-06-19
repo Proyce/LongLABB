@@ -1,0 +1,5 @@
+
+> longlab@1.0.4 check:long-filter-purity
+> node scripts/check-long-filter-purity.mjs
+
+✅ Long filter purity check passed (static + behavioral).

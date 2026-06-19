@@ -1,0 +1,3 @@
+closeReason,tradeCount,researchEligibleCount,avgFeeAdjustedNormPnlPct,totalFeeAdjustedNormPnlPct,feeAdjustedWinRatePct
+TIMEOUT,137,137,0.393822,53.953625,62.7737
+STOP_LOSS,13,13,-1.5,-19.499999,0

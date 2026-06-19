@@ -1,0 +1,1150 @@
+{
+  "exportSchemaVersion": "LONG_TRADE_EXPORT_V8",
+  "columns": [
+    {
+      "key": "id",
+      "header": "id"
+    },
+    {
+      "key": "run",
+      "header": "run"
+    },
+    {
+      "key": "setId",
+      "header": "setId"
+    },
+    {
+      "key": "batchId",
+      "header": "batchId"
+    },
+    {
+      "key": "autoRunId",
+      "header": "autoRunId"
+    },
+    {
+      "key": "autoRunCycle",
+      "header": "autoRunCycle"
+    },
+    {
+      "key": "entrySource",
+      "header": "entrySource"
+    },
+    {
+      "key": "symbol",
+      "header": "symbol"
+    },
+    {
+      "key": "leverage",
+      "header": "leverage"
+    },
+    {
+      "key": "change24h",
+      "header": "change24h"
+    },
+    {
+      "key": "entryRank",
+      "header": "entryRank"
+    },
+    {
+      "key": "entryPrice",
+      "header": "entryPrice"
+    },
+    {
+      "key": "exitPrice",
+      "header": "exitPrice"
+    },
+    {
+      "key": "feeAdjustedNormPnlPct",
+      "header": "feeAdjustedNormPnlPct"
+    },
+    {
+      "key": "closeReason",
+      "header": "closeReason"
+    },
+    {
+      "key": "isFinalOutcome",
+      "header": "isFinalOutcome"
+    },
+    {
+      "key": "closeReasonCategory",
+      "header": "closeReasonCategory"
+    },
+    {
+      "key": "closeReasonDetail",
+      "header": "closeReasonDetail"
+    },
+    {
+      "key": "holdMs",
+      "header": "holdMs"
+    },
+    {
+      "key": "mae",
+      "header": "mae"
+    },
+    {
+      "key": "mfe",
+      "header": "mfe"
+    },
+    {
+      "key": "cvdLabel",
+      "header": "cvdLabel"
+    },
+    {
+      "key": "atrPct",
+      "header": "atrPct"
+    },
+    {
+      "key": "spreadPct",
+      "header": "spreadPct"
+    },
+    {
+      "key": "volAccel",
+      "header": "volAccel"
+    },
+    {
+      "key": "utcHour",
+      "header": "utcHour"
+    },
+    {
+      "key": "entryTime",
+      "header": "entryTime"
+    },
+    {
+      "key": "closeTime",
+      "header": "closeTime"
+    },
+    {
+      "key": "leaderboardSide",
+      "header": "leaderboardSide"
+    },
+    {
+      "key": "longParentBucket",
+      "header": "longParentBucket"
+    },
+    {
+      "key": "longSubBucket",
+      "header": "longSubBucket"
+    },
+    {
+      "key": "entryRankInBucket",
+      "header": "entryRankInBucket"
+    },
+    {
+      "key": "bestDnaLongScoreRaw",
+      "header": "bestDnaLongScoreRaw"
+    },
+    {
+      "key": "bestDnaLongScore",
+      "header": "bestDnaLongScore"
+    },
+    {
+      "key": "bestDnaLongTier",
+      "header": "bestDnaLongTier"
+    },
+    {
+      "key": "bestDnaLongPrimaryLabel",
+      "header": "bestDnaLongPrimaryLabel"
+    },
+    {
+      "key": "bestDnaLongLabels",
+      "header": "bestDnaLongLabels"
+    },
+    {
+      "key": "bestDnaLongVersion",
+      "header": "bestDnaLongVersion"
+    },
+    {
+      "key": "isBestDnaLongHigh",
+      "header": "isBestDnaLongHigh"
+    },
+    {
+      "key": "isBestDnaLongSniper",
+      "header": "isBestDnaLongSniper"
+    },
+    {
+      "key": "isBestDnaLongElite",
+      "header": "isBestDnaLongElite"
+    },
+    {
+      "key": "longPostFee10EntryScore",
+      "header": "longPostFee10EntryScore"
+    },
+    {
+      "key": "longPostFee10EntryTier",
+      "header": "longPostFee10EntryTier"
+    },
+    {
+      "key": "isLongPostFee10CandidateAtEntry",
+      "header": "isLongPostFee10CandidateAtEntry"
+    },
+    {
+      "key": "longPostFee10PositiveGenes",
+      "header": "longPostFee10PositiveGenes"
+    },
+    {
+      "key": "longPostFee10PenaltyGenes",
+      "header": "longPostFee10PenaltyGenes"
+    },
+    {
+      "key": "longPostFee10FeatureCoveragePct",
+      "header": "longPostFee10FeatureCoveragePct"
+    },
+    {
+      "key": "grossNormPnlPct",
+      "header": "grossNormPnlPct"
+    },
+    {
+      "key": "grossLeveragedPnlPct",
+      "header": "grossLeveragedPnlPct"
+    },
+    {
+      "key": "feeAdjustedLeveragedPnlPct",
+      "header": "feeAdjustedLeveragedPnlPct"
+    },
+    {
+      "key": "isPostFee10PlusWinner",
+      "header": "isPostFee10PlusWinner"
+    },
+    {
+      "key": "isNorm2PlusWinner",
+      "header": "isNorm2PlusWinner"
+    },
+    {
+      "key": "isNorm3PlusWinner",
+      "header": "isNorm3PlusWinner"
+    },
+    {
+      "key": "isRunBest1Norm",
+      "header": "isRunBest1Norm"
+    },
+    {
+      "key": "isRunBest3Norm",
+      "header": "isRunBest3Norm"
+    },
+    {
+      "key": "runNormRank",
+      "header": "runNormRank"
+    },
+    {
+      "key": "runClosedTradeCount",
+      "header": "runClosedTradeCount"
+    },
+    {
+      "key": "longBestDnaOutcomeLabel",
+      "header": "longBestDnaOutcomeLabel"
+    },
+    {
+      "key": "longCandidateRunnerScoreAtEntry",
+      "header": "longCandidateRunnerScoreAtEntry"
+    },
+    {
+      "key": "longCandidateRunnerTierAtEntry",
+      "header": "longCandidateRunnerTierAtEntry"
+    },
+    {
+      "key": "longCandidateRunnerVerdict",
+      "header": "longCandidateRunnerVerdict"
+    },
+    {
+      "key": "longCandidateRunnerReasons",
+      "header": "longCandidateRunnerReasons"
+    },
+    {
+      "key": "longCandidateRunnerPenalties",
+      "header": "longCandidateRunnerPenalties"
+    },
+    {
+      "key": "longCandidateRunnerWouldAllow",
+      "header": "longCandidateRunnerWouldAllow"
+    },
+    {
+      "key": "longCandidateRunnerWouldBlock",
+      "header": "longCandidateRunnerWouldBlock"
+    },
+    {
+      "key": "longCandidateRunnerFeatureCoveragePct",
+      "header": "longCandidateRunnerFeatureCoveragePct"
+    },
+    {
+      "key": "longAesScore",
+      "header": "longAesScore"
+    },
+    {
+      "key": "longAesTier",
+      "header": "longAesTier"
+    },
+    {
+      "key": "longAesEligibility",
+      "header": "longAesEligibility"
+    },
+    {
+      "key": "longAesVersion",
+      "header": "longAesVersion"
+    },
+    {
+      "key": "longGateWouldPass",
+      "header": "longGateWouldPass"
+    },
+    {
+      "key": "longGateScore",
+      "header": "longGateScore"
+    },
+    {
+      "key": "longGateEligibility",
+      "header": "longGateEligibility"
+    },
+    {
+      "key": "longGateTier",
+      "header": "longGateTier"
+    },
+    {
+      "key": "longGateReasons",
+      "header": "longGateReasons"
+    },
+    {
+      "key": "longGateFailReasons",
+      "header": "longGateFailReasons"
+    },
+    {
+      "key": "longGateMissingInputs",
+      "header": "longGateMissingInputs"
+    },
+    {
+      "key": "bucketAuditType",
+      "header": "bucketAuditType"
+    },
+    {
+      "key": "bucketAuditWouldPass",
+      "header": "bucketAuditWouldPass"
+    },
+    {
+      "key": "bucketAuditScore",
+      "header": "bucketAuditScore"
+    },
+    {
+      "key": "bucketAuditTier",
+      "header": "bucketAuditTier"
+    },
+    {
+      "key": "bucketAuditReasons",
+      "header": "bucketAuditReasons"
+    },
+    {
+      "key": "bucketAuditWarnings",
+      "header": "bucketAuditWarnings"
+    },
+    {
+      "key": "bucketAuditMissingInputs",
+      "header": "bucketAuditMissingInputs"
+    },
+    {
+      "key": "btcLongContextLabel",
+      "header": "btcLongContextLabel"
+    },
+    {
+      "key": "longMarketContextLabel",
+      "header": "longMarketContextLabel"
+    },
+    {
+      "key": "longMarketContextScore",
+      "header": "longMarketContextScore"
+    },
+    {
+      "key": "longMarketBreadthLabel",
+      "header": "longMarketBreadthLabel"
+    },
+    {
+      "key": "longMarketBreadthScore",
+      "header": "longMarketBreadthScore"
+    },
+    {
+      "key": "longShadowDecision",
+      "header": "longShadowDecision"
+    },
+    {
+      "key": "longShadowRequiredCoveragePct",
+      "header": "longShadowRequiredCoveragePct"
+    },
+    {
+      "key": "longShadowPositiveReasons",
+      "header": "longShadowPositiveReasons"
+    },
+    {
+      "key": "longShadowCautionReasons",
+      "header": "longShadowCautionReasons"
+    },
+    {
+      "key": "longShadowBlockReasons",
+      "header": "longShadowBlockReasons"
+    },
+    {
+      "key": "longShadowUnknownReasons",
+      "header": "longShadowUnknownReasons"
+    },
+    {
+      "key": "longShadowComponentVerdicts",
+      "header": "longShadowComponentVerdicts"
+    },
+    {
+      "key": "entryResearchStatus",
+      "header": "entryResearchStatus"
+    },
+    {
+      "key": "entryResearchComputedAt",
+      "header": "entryResearchComputedAt"
+    },
+    {
+      "key": "longFilterSnapshotVersion",
+      "header": "longFilterSnapshotVersion"
+    },
+    {
+      "key": "longFilterSnapshotTiming",
+      "header": "longFilterSnapshotTiming"
+    },
+    {
+      "key": "longFilterSnapshotComputedAt",
+      "header": "longFilterSnapshotComputedAt"
+    },
+    {
+      "key": "longFilterSnapshotSource",
+      "header": "longFilterSnapshotSource"
+    },
+    {
+      "key": "longFilterDataQuality",
+      "header": "longFilterDataQuality"
+    },
+    {
+      "key": "longFilterMissingRequiredFields",
+      "header": "longFilterMissingRequiredFields"
+    },
+    {
+      "key": "longFilterMissingOptionalFields",
+      "header": "longFilterMissingOptionalFields"
+    },
+    {
+      "key": "longFilterConflictingFields",
+      "header": "longFilterConflictingFields"
+    },
+    {
+      "key": "longFilterStaleFields",
+      "header": "longFilterStaleFields"
+    },
+    {
+      "key": "entryResearchComponentErrors",
+      "header": "entryResearchComponentErrors"
+    },
+    {
+      "key": "longGateResearchBandV2",
+      "header": "longGateResearchBandV2"
+    },
+    {
+      "key": "longMicroMomentumLabel",
+      "header": "longMicroMomentumLabel"
+    },
+    {
+      "key": "last3TicksDirection",
+      "header": "last3TicksDirection"
+    },
+    {
+      "key": "last5TicksDirection",
+      "header": "last5TicksDirection"
+    },
+    {
+      "key": "immediateGreenImpulse",
+      "header": "immediateGreenImpulse"
+    },
+    {
+      "key": "immediateRedImpulse",
+      "header": "immediateRedImpulse"
+    },
+    {
+      "key": "hasLongMicroMomentum",
+      "header": "hasLongMicroMomentum"
+    },
+    {
+      "key": "longMicroUpConfirmation",
+      "header": "longMicroUpConfirmation"
+    },
+    {
+      "key": "longMicroUpConfirmationReasons",
+      "header": "longMicroUpConfirmationReasons"
+    },
+    {
+      "key": "longMicroUpConfirmationSourceCount",
+      "header": "longMicroUpConfirmationSourceCount"
+    },
+    {
+      "key": "rsiLongMomentumExpansion",
+      "header": "rsiLongMomentumExpansion"
+    },
+    {
+      "key": "rsiLongMomentumExpansionSource",
+      "header": "rsiLongMomentumExpansionSource"
+    },
+    {
+      "key": "macdBullishExpansion",
+      "header": "macdBullishExpansion"
+    },
+    {
+      "key": "topLoserLongThesisLane",
+      "header": "topLoserLongThesisLane"
+    },
+    {
+      "key": "longCombosPositiveMatched",
+      "header": "longCombosPositiveMatched"
+    },
+    {
+      "key": "longCombosAntiMatched",
+      "header": "longCombosAntiMatched"
+    },
+    {
+      "key": "longCombosPositiveCount",
+      "header": "longCombosPositiveCount"
+    },
+    {
+      "key": "longCombosAntiCount",
+      "header": "longCombosAntiCount"
+    },
+    {
+      "key": "longWinningSetupMatchedIds",
+      "header": "longWinningSetupMatchedIds"
+    },
+    {
+      "key": "absoluteEntryBaseScore",
+      "header": "absoluteEntryBaseScore"
+    },
+    {
+      "key": "absoluteEntryMarketAdjustment",
+      "header": "absoluteEntryMarketAdjustment"
+    },
+    {
+      "key": "absoluteEntryAdaptiveScore",
+      "header": "absoluteEntryAdaptiveScore"
+    },
+    {
+      "key": "absoluteEntryRequiredScore",
+      "header": "absoluteEntryRequiredScore"
+    },
+    {
+      "key": "absoluteEntryAesGap",
+      "header": "absoluteEntryAesGap"
+    },
+    {
+      "key": "absoluteEntryWouldPassAdaptive",
+      "header": "absoluteEntryWouldPassAdaptive"
+    },
+    {
+      "key": "absoluteEntryAdaptiveStatus",
+      "header": "absoluteEntryAdaptiveStatus"
+    },
+    {
+      "key": "absoluteEntryMarketAdjustmentContributions",
+      "header": "absoluteEntryMarketAdjustmentContributions"
+    },
+    {
+      "key": "absoluteEntryMarketAdjustmentPenalties",
+      "header": "absoluteEntryMarketAdjustmentPenalties"
+    },
+    {
+      "key": "absoluteEntryMarketAdjustmentVersion",
+      "header": "absoluteEntryMarketAdjustmentVersion"
+    },
+    {
+      "key": "entryPolicyMode",
+      "header": "entryPolicyMode"
+    },
+    {
+      "key": "entryPolicyPrimaryReason",
+      "header": "entryPolicyPrimaryReason"
+    },
+    {
+      "key": "entryPolicyEvaluationStatus",
+      "header": "entryPolicyEvaluationStatus"
+    },
+    {
+      "key": "entryPolicyRequiredAes",
+      "header": "entryPolicyRequiredAes"
+    },
+    {
+      "key": "entryPolicyAesGap",
+      "header": "entryPolicyAesGap"
+    },
+    {
+      "key": "longAesConfidenceIsInformative",
+      "header": "longAesConfidenceIsInformative"
+    },
+    {
+      "key": "longAesConfidenceCalibrationStatus",
+      "header": "longAesConfidenceCalibrationStatus"
+    },
+    {
+      "key": "longAesScoreV2Shadow",
+      "header": "longAesScoreV2Shadow"
+    },
+    {
+      "key": "longAesTierV2Shadow",
+      "header": "longAesTierV2Shadow"
+    },
+    {
+      "key": "longAesV2PositiveContributions",
+      "header": "longAesV2PositiveContributions"
+    },
+    {
+      "key": "longAesV2NegativeContributions",
+      "header": "longAesV2NegativeContributions"
+    },
+    {
+      "key": "longAesV2RawUtility",
+      "header": "longAesV2RawUtility"
+    },
+    {
+      "key": "longAesV2DeltaVsV1",
+      "header": "longAesV2DeltaVsV1"
+    },
+    {
+      "key": "longAesV2Version",
+      "header": "longAesV2Version"
+    },
+    {
+      "key": "bestDnaLongScoreV2ShadowRaw",
+      "header": "bestDnaLongScoreV2ShadowRaw"
+    },
+    {
+      "key": "bestDnaLongScoreV2Shadow",
+      "header": "bestDnaLongScoreV2Shadow"
+    },
+    {
+      "key": "bestDnaLongTierV2Shadow",
+      "header": "bestDnaLongTierV2Shadow"
+    },
+    {
+      "key": "bestDnaLongV2PositiveGenes",
+      "header": "bestDnaLongV2PositiveGenes"
+    },
+    {
+      "key": "bestDnaLongV2PenaltyGenes",
+      "header": "bestDnaLongV2PenaltyGenes"
+    },
+    {
+      "key": "bestDnaLongV2Contributions",
+      "header": "bestDnaLongV2Contributions"
+    },
+    {
+      "key": "bestDnaLongV2Penalties",
+      "header": "bestDnaLongV2Penalties"
+    },
+    {
+      "key": "bestDnaLongV2StrictDirectionalConfirmation",
+      "header": "bestDnaLongV2StrictDirectionalConfirmation"
+    },
+    {
+      "key": "bestDnaLongV2Version",
+      "header": "bestDnaLongV2Version"
+    },
+    {
+      "key": "bestDnaV2MinusV1",
+      "header": "bestDnaV2MinusV1"
+    },
+    {
+      "key": "profitLockActivatedAt",
+      "header": "profitLockActivatedAt"
+    },
+    {
+      "key": "profitLockCrossDetected",
+      "header": "profitLockCrossDetected"
+    },
+    {
+      "key": "profitLockCrossDetectedAt",
+      "header": "profitLockCrossDetectedAt"
+    },
+    {
+      "key": "profitLockCrossFromPrice",
+      "header": "profitLockCrossFromPrice"
+    },
+    {
+      "key": "profitLockCrossToPrice",
+      "header": "profitLockCrossToPrice"
+    },
+    {
+      "key": "profitLockTriggerPrice",
+      "header": "profitLockTriggerPrice"
+    },
+    {
+      "key": "profitLockObservedFillPrice",
+      "header": "profitLockObservedFillPrice"
+    },
+    {
+      "key": "profitLockSlippagePricePct",
+      "header": "profitLockSlippagePricePct"
+    },
+    {
+      "key": "profitLockSlippageMarginPct",
+      "header": "profitLockSlippageMarginPct"
+    },
+    {
+      "key": "profitLockFloorEnforcementAttempted",
+      "header": "profitLockFloorEnforcementAttempted"
+    },
+    {
+      "key": "profitLockExitBelowFloor",
+      "header": "profitLockExitBelowFloor"
+    },
+    {
+      "key": "profitLockFloorMissed",
+      "header": "profitLockFloorMissed"
+    },
+    {
+      "key": "profitLockRecommendedActionLogOnly",
+      "header": "profitLockRecommendedActionLogOnly"
+    },
+    {
+      "key": "profitLockRecommendationReasons",
+      "header": "profitLockRecommendationReasons"
+    },
+    {
+      "key": "tradeSchemaVersion",
+      "header": "tradeSchemaVersion"
+    },
+    {
+      "key": "entrySnapshotSchemaVersion",
+      "header": "entrySnapshotSchemaVersion"
+    },
+    {
+      "key": "longMicroContextLabel",
+      "header": "longMicroContextLabel"
+    },
+    {
+      "key": "longTacticalContextLabel",
+      "header": "longTacticalContextLabel"
+    },
+    {
+      "key": "longStrategicContextLabel",
+      "header": "longStrategicContextLabel"
+    },
+    {
+      "key": "longMarketContextComputedLabel",
+      "header": "longMarketContextComputedLabel"
+    },
+    {
+      "key": "marketContextFreshnessMs",
+      "header": "marketContextFreshnessMs"
+    },
+    {
+      "key": "marketContextExpectedLongEffect",
+      "header": "marketContextExpectedLongEffect"
+    },
+    {
+      "key": "feeModelVersion",
+      "header": "feeModelVersion"
+    },
+    {
+      "key": "entrySnapshotCapturedAt",
+      "header": "entrySnapshotCapturedAt"
+    },
+    {
+      "key": "entrySnapshotMarketDataTimestamp",
+      "header": "entrySnapshotMarketDataTimestamp"
+    },
+    {
+      "key": "entrySnapshotRequiredFieldsComplete",
+      "header": "entrySnapshotRequiredFieldsComplete"
+    },
+    {
+      "key": "cvdStateAtEntry",
+      "header": "cvdStateAtEntry"
+    },
+    {
+      "key": "cvdSupportsLongAtEntry",
+      "header": "cvdSupportsLongAtEntry"
+    },
+    {
+      "key": "cvdContradictsLongAtEntry",
+      "header": "cvdContradictsLongAtEntry"
+    },
+    {
+      "key": "cvdOverrideApplied",
+      "header": "cvdOverrideApplied"
+    },
+    {
+      "key": "cvdOverrideReason",
+      "header": "cvdOverrideReason"
+    },
+    {
+      "key": "cvdLongInterpretation",
+      "header": "cvdLongInterpretation"
+    },
+    {
+      "key": "longAtrContext",
+      "header": "longAtrContext"
+    },
+    {
+      "key": "longAtrQualityQualified",
+      "header": "longAtrQualityQualified"
+    },
+    {
+      "key": "longAtrMicroUpQualified",
+      "header": "longAtrMicroUpQualified"
+    },
+    {
+      "key": "positiveEvidenceFamilies",
+      "header": "positiveEvidenceFamilies"
+    },
+    {
+      "key": "negativeEvidenceFamilies",
+      "header": "negativeEvidenceFamilies"
+    },
+    {
+      "key": "independentPositiveEvidenceCount",
+      "header": "independentPositiveEvidenceCount"
+    },
+    {
+      "key": "independentNegativeEvidenceCount",
+      "header": "independentNegativeEvidenceCount"
+    },
+    {
+      "key": "evidenceConflictCount",
+      "header": "evidenceConflictCount"
+    },
+    {
+      "key": "highestAntiSeverity",
+      "header": "highestAntiSeverity"
+    },
+    {
+      "key": "antiSeverityCounts",
+      "header": "antiSeverityCounts"
+    },
+    {
+      "key": "hardAntiComboPresent",
+      "header": "hardAntiComboPresent"
+    },
+    {
+      "key": "cleanComboStackWouldAllowLogOnly",
+      "header": "cleanComboStackWouldAllowLogOnly"
+    },
+    {
+      "key": "stackedCleanComboWouldAllowLogOnly",
+      "header": "stackedCleanComboWouldAllowLogOnly"
+    },
+    {
+      "key": "eliteCleanComboStackWouldAllowLogOnly",
+      "header": "eliteCleanComboStackWouldAllowLogOnly"
+    },
+    {
+      "key": "longQualityTierV2",
+      "header": "longQualityTierV2"
+    },
+    {
+      "key": "longEligibilityTierV2",
+      "header": "longEligibilityTierV2"
+    },
+    {
+      "key": "finalPriceSource",
+      "header": "finalPriceSource"
+    },
+    {
+      "key": "finalPriceTimestamp",
+      "header": "finalPriceTimestamp"
+    },
+    {
+      "key": "finalPriceAgeMs",
+      "header": "finalPriceAgeMs"
+    },
+    {
+      "key": "finalPriceFresh",
+      "header": "finalPriceFresh"
+    },
+    {
+      "key": "finalPriceValidationPassed",
+      "header": "finalPriceValidationPassed"
+    },
+    {
+      "key": "finalPriceFallbackUsed",
+      "header": "finalPriceFallbackUsed"
+    },
+    {
+      "key": "autoEndUsedEntryPriceFallback",
+      "header": "autoEndUsedEntryPriceFallback"
+    },
+    {
+      "key": "finalizationDataQuality",
+      "header": "finalizationDataQuality"
+    },
+    {
+      "key": "finalizationFailureCode",
+      "header": "finalizationFailureCode"
+    },
+    {
+      "key": "strategyResearchEligible",
+      "header": "strategyResearchEligible"
+    },
+    {
+      "key": "strategyResearchExclusionReason",
+      "header": "strategyResearchExclusionReason"
+    },
+    {
+      "key": "closeTriggerSource",
+      "header": "closeTriggerSource"
+    },
+    {
+      "key": "closeExecutionMechanism",
+      "header": "closeExecutionMechanism"
+    },
+    {
+      "key": "profitLockStrategyActive",
+      "header": "profitLockStrategyActive"
+    },
+    {
+      "key": "profitLockProtectionState",
+      "header": "profitLockProtectionState"
+    },
+    {
+      "key": "profitLockProtectionVenue",
+      "header": "profitLockProtectionVenue"
+    },
+    {
+      "key": "profitLockProtectionVerified",
+      "header": "profitLockProtectionVerified"
+    },
+    {
+      "key": "profitLockProtectionRequested",
+      "header": "profitLockProtectionRequested"
+    },
+    {
+      "key": "profitLockOrderSubmitted",
+      "header": "profitLockOrderSubmitted"
+    },
+    {
+      "key": "profitLockOrderAcknowledged",
+      "header": "profitLockOrderAcknowledged"
+    },
+    {
+      "key": "profitLockOrderResting",
+      "header": "profitLockOrderResting"
+    },
+    {
+      "key": "profitLockProtectedFloorPrice",
+      "header": "profitLockProtectedFloorPrice"
+    },
+    {
+      "key": "profitLockProtectedFloorMarginPct",
+      "header": "profitLockProtectedFloorMarginPct"
+    },
+    {
+      "key": "profitLockProtectedStage",
+      "header": "profitLockProtectedStage"
+    },
+    {
+      "key": "profitLockSimulatedOrderId",
+      "header": "profitLockSimulatedOrderId"
+    },
+    {
+      "key": "profitLockFloorBreachedWhilePositionOpen",
+      "header": "profitLockFloorBreachedWhilePositionOpen"
+    },
+    {
+      "key": "profitLockFloorBreachedInLoss",
+      "header": "profitLockFloorBreachedInLoss"
+    },
+    {
+      "key": "profitLockPnlAtFloorBreach",
+      "header": "profitLockPnlAtFloorBreach"
+    },
+    {
+      "key": "profitLockFloorCrossedAt",
+      "header": "profitLockFloorCrossedAt"
+    },
+    {
+      "key": "profitLockLocalTriggerDetectedAt",
+      "header": "profitLockLocalTriggerDetectedAt"
+    },
+    {
+      "key": "profitLockCrossToLocalDetectionLatencyMs",
+      "header": "profitLockCrossToLocalDetectionLatencyMs"
+    },
+    {
+      "key": "profitLockCrossTimePrecision",
+      "header": "profitLockCrossTimePrecision"
+    },
+    {
+      "key": "profitLockProtectionModeHonestLabel",
+      "header": "profitLockProtectionModeHonestLabel"
+    },
+    {
+      "key": "positionLifecycleEngine",
+      "header": "positionLifecycleEngine"
+    },
+    {
+      "key": "priceStreamSchemaVersion",
+      "header": "priceStreamSchemaVersion"
+    },
+    {
+      "key": "priceTickSchemaValidated",
+      "header": "priceTickSchemaValidated"
+    },
+    {
+      "key": "priceIntegrityStatus",
+      "header": "priceIntegrityStatus"
+    },
+    {
+      "key": "priceIntegrityFailureCode",
+      "header": "priceIntegrityFailureCode"
+    },
+    {
+      "key": "positionLifecycleLastHeartbeatAt",
+      "header": "positionLifecycleLastHeartbeatAt"
+    },
+    {
+      "key": "positionLifecycleLastWebsocketAt",
+      "header": "positionLifecycleLastWebsocketAt"
+    },
+    {
+      "key": "positionLifecycleLastRestFallbackAt",
+      "header": "positionLifecycleLastRestFallbackAt"
+    },
+    {
+      "key": "positionLifecycleSymbolTickAgeMs",
+      "header": "positionLifecycleSymbolTickAgeMs"
+    },
+    {
+      "key": "positionLifecycleRestFallbackStatus",
+      "header": "positionLifecycleRestFallbackStatus"
+    },
+    {
+      "key": "positionLifecycleFallbackReason",
+      "header": "positionLifecycleFallbackReason"
+    },
+    {
+      "key": "marketPriceStreamHealthy",
+      "header": "marketPriceStreamHealthy"
+    },
+    {
+      "key": "sourceRunCompleted",
+      "header": "sourceRunCompleted"
+    },
+    {
+      "key": "sourceRunCompletedAt",
+      "header": "sourceRunCompletedAt"
+    },
+    {
+      "key": "sourceRunCompletionReason",
+      "header": "sourceRunCompletionReason"
+    },
+    {
+      "key": "positionLifecycleContinuesAfterRun",
+      "header": "positionLifecycleContinuesAfterRun"
+    },
+    {
+      "key": "profitLockFloorPreserved",
+      "header": "profitLockFloorPreserved"
+    },
+    {
+      "key": "profitLockEmergencyFallbackUsed",
+      "header": "profitLockEmergencyFallbackUsed"
+    },
+    {
+      "key": "profitLockEnforcementFailed",
+      "header": "profitLockEnforcementFailed"
+    },
+    {
+      "key": "profitLockCloseBlockedByPositivePnlGuard",
+      "header": "profitLockCloseBlockedByPositivePnlGuard"
+    },
+    {
+      "key": "entryPolicyDiagnosticDecision",
+      "header": "entryPolicyDiagnosticDecision"
+    },
+    {
+      "key": "entryPolicyDiagnosticAction",
+      "header": "entryPolicyDiagnosticAction"
+    },
+    {
+      "key": "entryPolicyQualityTier",
+      "header": "entryPolicyQualityTier"
+    },
+    {
+      "key": "requiredEntrySnapshotCompletenessPct",
+      "header": "requiredEntrySnapshotCompletenessPct"
+    },
+    {
+      "key": "optionalResearchFeatureCoveragePct",
+      "header": "optionalResearchFeatureCoveragePct"
+    },
+    {
+      "key": "longGateRegimeVersion",
+      "header": "longGateRegimeVersion"
+    },
+    {
+      "key": "longGateRegimePenaltyApplied",
+      "header": "longGateRegimePenaltyApplied"
+    },
+    {
+      "key": "longGateTierCeilingApplied",
+      "header": "longGateTierCeilingApplied"
+    },
+    {
+      "key": "longQualityTierV2Aggregation",
+      "header": "longQualityTierV2Aggregation"
+    },
+    {
+      "key": "longMicroConfirmObserved",
+      "header": "longMicroConfirmObserved"
+    },
+    {
+      "key": "longMicroConfirmReversalLane",
+      "header": "longMicroConfirmReversalLane"
+    },
+    {
+      "key": "longMicroConfirmObsVersion",
+      "header": "longMicroConfirmObsVersion"
+    },
+    {
+      "key": "finalPriceRefreshAttempted",
+      "header": "finalPriceRefreshAttempted"
+    },
+    {
+      "key": "finalPriceRefreshSucceeded",
+      "header": "finalPriceRefreshSucceeded"
+    },
+    {
+      "key": "finalPricePreRefreshAgeMs",
+      "header": "finalPricePreRefreshAgeMs"
+    },
+    {
+      "key": "exitVsRegimeAttribution",
+      "header": "exitVsRegimeAttribution"
+    },
+    {
+      "key": "longDataQualityMissingRequiredCount",
+      "header": "longDataQualityMissingRequiredCount"
+    },
+    {
+      "key": "longDataQualityPrimaryMissingField",
+      "header": "longDataQualityPrimaryMissingField"
+    },
+    {
+      "key": "longDataQualityVerdictDriver",
+      "header": "longDataQualityVerdictDriver"
+    }
+  ],
+  "omittedHeavyForensicFields": [
+    "entryResearchSnapshot",
+    "longComboDetails",
+    "longWinningSetupMatchDetails",
+    "entrySnapshotFieldStatus"
+  ],
+  "telemetryStorageProfile": "LONG_TELEMETRY_V8_COMPACT",
+  "canonicalVersions": {
+    "tradeSchemaVersion": "LONG_TRADE_EXPORT_V8",
+    "entrySnapshotSchemaVersion": "LONG_ENTRY_RESEARCH_V8",
+    "scoreRegistryVersion": "LONG_SCORE_REGISTRY_V6_2026_06",
+    "filterRegistryVersion": "LONG_FILTER_REGISTRY_V6_2026_06",
+    "labelRegistryVersion": "LONG_LABEL_REGISTRY_V6_2026_06",
+    "comboRegistrySchemaVersion": "LONG_COMBO_REGISTRY_SCHEMA_V3_2026_06",
+    "antiComboRegistryVersion": "LONG_ANTI_COMBO_REGISTRY_V2_2026_06",
+    "winningSetupRegistryVersion": "LONG_WINNING_SETUPS_V2_2026_06",
+    "marketContextVersion": "LONG_MARKET_CONTEXT_V2_2026_06",
+    "exitSystemVersion": "LONG_EXIT_SYSTEM_V4_2026_06",
+    "feeModelVersion": "LONG_FEE_MODEL_V2_2026_06",
+    "pnlModelVersion": "LONG_PNL_MODEL_V2_2026_06"
+  }
+}

@@ -1,0 +1,4 @@
+run,totalTrades,closedTrades,activeTrades,researchEligibleClosed,excludedClosed,gainers,losers,uniqueSymbols,totalFeeAdjustedNormPnlPct,avgFeeAdjustedNormPnlPct,feeAdjustedWinRatePct,bestFeeAdjustedNormPnlPct,worstFeeAdjustedNormPnlPct,stopLossCount,profitLockCount,trailingExitCount,timeoutCount,runStopCount,startedAt,endedAt
+901,50,50,0,50,0,25,25,50,49.881098,0.997622,100,1.2927845800139055,0.6606068950325029,0,0,0,50,0,2026-06-17T13:29:36.219Z,2026-06-17T13:30:36.219Z
+902,50,50,0,50,0,25,25,50,-5.750533,-0.115011,28,0.2232143036613373,-0.4296347989321795,0,0,0,50,0,2026-06-17T13:29:36.219Z,2026-06-17T13:30:36.219Z
+903,50,50,0,50,0,25,25,50,-9.676939,-0.193539,44,1.1000018906897713,-1.5000036541694128,13,0,0,37,0,2026-06-17T13:29:36.219Z,2026-06-17T13:30:36.219Z

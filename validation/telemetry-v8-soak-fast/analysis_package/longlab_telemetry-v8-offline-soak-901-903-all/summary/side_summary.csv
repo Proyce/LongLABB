@@ -1,0 +1,3 @@
+side,tradeCount,closedCount,activeCount,researchEligibleCount,avgFeeAdjustedNormPnlPct,totalFeeAdjustedNormPnlPct,feeAdjustedWinRatePct
+GAINERS,75,75,0,75,1.246625,93.496849,78.6667
+LOSERS,75,75,0,75,0.608935,45.670114,44

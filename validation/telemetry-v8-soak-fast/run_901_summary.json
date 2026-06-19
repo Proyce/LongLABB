@@ -1,0 +1,25 @@
+{
+  "run": 901,
+  "profile": "TREND_AND_TRAIL",
+  "durationSeconds": 300,
+  "tradeCount": 50,
+  "closedCount": 50,
+  "invalidFinalPnlCount": 0,
+  "heavyDuplicateFieldCount": 0,
+  "lifecycleTicks": 15000,
+  "fallbackTicks": 0,
+  "invalidTicks": 0,
+  "renderGuardChecks": 600,
+  "closeReasons": {
+    "TIMEOUT": 50
+  },
+  "totalFeeAdjustedNormPnlPct": 160.803208,
+  "avgFeeAdjustedNormPnlPct": 3.216064,
+  "winRatePct": 100,
+  "fastScanMaxMs": 0.023,
+  "fastScanP95Ms": 0.023,
+  "deepScanMaxMs": 350.732,
+  "maxEventLoopLagMs": 13.571,
+  "memoryPeakHeapMiB": 22.957,
+  "passed": true
+}

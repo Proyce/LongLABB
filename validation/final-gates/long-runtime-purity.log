@@ -1,0 +1,5 @@
+
+> longlab@1.0.4 test:long-purity
+> node scripts/check-long-runtime-purity.mjs
+
+✓ Long runtime purity: PASS — no short-legacy violations found

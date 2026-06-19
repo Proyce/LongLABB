@@ -1,0 +1,18 @@
+{
+  "tradeSchemaVersion": {
+    "LONG_TRADE_EXPORT_V8": 150
+  },
+  "entrySnapshotSchemaVersion": {
+    "LONG_ENTRY_RESEARCH_V8": 150
+  },
+  "scoreRegistryVersion": {},
+  "filterRegistryVersion": {},
+  "labelRegistryVersion": {},
+  "comboRegistryVersion": {},
+  "antiComboRegistryVersion": {},
+  "winningSetupRegistryVersion": {},
+  "marketContextVersion": {},
+  "exitSystemVersion": {},
+  "feeModelVersion": {},
+  "pnlModelVersion": {}
+}

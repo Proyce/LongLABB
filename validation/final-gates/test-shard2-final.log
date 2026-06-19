@@ -1,0 +1,68 @@
+
+> longlab@1.0.4 test:unit:shard2
+> vitest run --pool=forks --maxWorkers=2 --minWorkers=1 --testTimeout=15000 --hookTimeout=15000 --shard=2/2
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/mnt/data/LongLAB-main-june17-telemetry-v8-work[39m
+
+ [32m✓[39m src/audits/topGainerExhaustionAudit.test.js [2m([22m[2m108 tests[22m[2m)[22m[90m 70[2mms[22m[39m
+ [32m✓[39m src/scoring/absoluteEntryScore.test.js [2m([22m[2m89 tests[22m[2m)[22m[90m 93[2mms[22m[39m
+[90mstderr[2m | src/rateLimiter/index.test.js[2m > [22m[2mapiFetch 429 handling[2m > [22m[2mreturns RATE_LIMITED error code on 429
+[22m[39m[RateLimit] P0: 429 RATE_LIMITED for 15s — committed=40 measured=0 priority=NORMAL url=https://fapi.binance.com/fapi/v1/ticker/24hr
+
+[90mstderr[2m | src/rateLimiter/index.test.js[2m > [22m[2mapiFetch 418 handling[2m > [22m[2mreturns IP_BANNED error code on 418
+[22m[39m[RateLimit] P0: 418 IP_BANNED for 300s — committed=40 measured=0 priority=NORMAL url=https://fapi.binance.com/fapi/v1/ticker/24hr
+
+[90mstderr[2m | src/rateLimiter/index.test.js[2m > [22m[2mCRITICAL lifecycle lane[2m > [22m[2mfails CRITICAL reads immediately during 429 backoff instead of sleeping in the trade path
+[22m[39m[RateLimit] P0: 429 RATE_LIMITED for 15s — committed=40 measured=0 priority=NORMAL url=https://fapi.binance.com/fapi/v1/ticker/24hr
+
+ [32m✓[39m src/rateLimiter/index.test.js [2m([22m[2m49 tests[22m[2m)[22m[90m 109[2mms[22m[39m
+ [32m✓[39m src/shadowLong/shadowLongAudit.test.js [2m([22m[2m80 tests[22m[2m)[22m[90m 65[2mms[22m[39m
+ [32m✓[39m src/telemetry/entryTelemetry.test.js [2m([22m[2m57 tests[22m[2m)[22m[90m 45[2mms[22m[39m
+ [32m✓[39m src/scoring/candidateRunner/candidateRunner.scorer.test.js [2m([22m[2m48 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/marketContext.test.js [2m([22m[2m24 tests[22m[2m)[22m[90m 37[2mms[22m[39m
+ [32m✓[39m src/marketRegime/marketRegime.test.js [2m([22m[2m22 tests[22m[2m)[22m[90m 246[2mms[22m[39m
+ [32m✓[39m src/sessionHealth/sessionHealth.test.js [2m([22m[2m14 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/liveExitAudit/liveExitAudit.evaluate.test.js [2m([22m[2m18 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m src/telemetry/trendTelemetry.test.js [2m([22m[2m20 tests[22m[2m)[22m[90m 74[2mms[22m[39m
+ [32m✓[39m src/outcomes/longPostFee10Support.test.js [2m([22m[2m27 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/entryPolicy/entryPolicy.test.js [2m([22m[2m14 tests[22m[2m)[22m[90m 21[2mms[22m[39m
+ [32m✓[39m src/shadowLong/binancePriceStream.test.js [2m([22m[2m13 tests[22m[2m)[22m[33m 349[2mms[22m[39m
+ [32m✓[39m src/research/finalSemanticConsolidation.test.js [2m([22m[2m11 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/aesDiscovery/aesDiscoveryLabels.test.js [2m([22m[2m27 tests[22m[2m)[22m[90m 40[2mms[22m[39m
+ [32m✓[39m src/scoring/postFee10/postFee10.scorer.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 28[2mms[22m[39m
+ [32m✓[39m src/fees/feeAccounting.test.js [2m([22m[2m18 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m src/liveExitAudit/liveExitAudit.score.test.js [2m([22m[2m18 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/filters/longHighlightEngine.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 115[2mms[22m[39m
+ [32m✓[39m src/shadowLong/shadowLongAnalytics.test.js [2m([22m[2m15 tests[22m[2m)[22m[90m 29[2mms[22m[39m
+ [32m✓[39m src/exitProfiles/dynamicExitProfiles.longNative.test.js [2m([22m[2m18 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/entryPolicy/exportFields.test.js [2m([22m[2m16 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/aesDiscovery/aesDiscoveryAnalytics.test.js [2m([22m[2m10 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/aesDiscovery/aesDiscoveryPrefilter.test.js [2m([22m[2m11 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/research/reviewFixesP0.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 59[2mms[22m[39m
+ [32m✓[39m src/aesDiscovery/aesDiscoveryScore.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/aesDiscovery/aesDiscoveryQueue.test.js [2m([22m[2m11 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/entryPolicy/entryPolicyLogOnlySafety.test.js [2m([22m[2m17 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/safety/longResearchOnly.endToEnd.test.js [2m([22m[2m7 tests[22m[2m)[22m[90m 69[2mms[22m[39m
+ [32m✓[39m src/combos/longComboRegistry.test.js [2m([22m[2m9 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/lifecycle/profitLockProtection.test.js [2m([22m[2m5 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/longGate/longGateAudit.test.js [2m([22m[2m11 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/longGate/sniperLongGateLogOnly.test.js [2m([22m[2m7 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/fees/feeAggregates.test.js [2m([22m[2m5 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+ [32m✓[39m src/research/longEvidenceSemantics.test.js [2m([22m[2m6 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/safety/longResearchOnly.integration.test.js [2m([22m[2m15 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/longAudits/shortPressureDangerLogOnly.test.js [2m([22m[2m5 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/lifecycle/openPositionLifecycle.test.js [2m([22m[2m5 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/fees/feeSelectors.test.js [2m([22m[2m9 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/lifecycle/positionPriceWatchdog.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/telemetry/telemetryCompaction.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/longAudits/topGainerContinuationAudit.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/marketRegime/normalizeLongMarketContext.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/ui/safeFormat.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/export/analysisZipUiSafety.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 6[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m46 passed[39m[22m[90m (46)[39m
+[2m      Tests [22m [1m[32m906 passed[39m[22m[90m (906)[39m
+[2m   Start at [22m 10:08:13
+[2m   Duration [22m 25.57s[2m (transform 2.10s, setup 0ms, collect 5.96s, tests 1.97s, environment 20ms, prepare 12.72s)[22m
+

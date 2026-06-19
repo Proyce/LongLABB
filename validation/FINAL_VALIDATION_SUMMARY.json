@@ -1,0 +1,52 @@
+{
+  "buildVersion": "1.0.4",
+  "schemas": {
+    "entryResearch": "LONG_ENTRY_RESEARCH_V8",
+    "filterSnapshot": "LONG_FILTER_SNAPSHOT_V8",
+    "tradeExport": "LONG_TRADE_EXPORT_V8",
+    "batchExport": "LONG_BATCH_ANALYSIS_V3_TELEMETRY_V8"
+  },
+  "sourceSyntax": {
+    "filesChecked": 259,
+    "passed": true
+  },
+  "productionBuild": {
+    "passed": true,
+    "modulesTransformed": 798
+  },
+  "tests": {
+    "filesPassed": 92,
+    "testsPassed": 1449,
+    "shard1": { "files": 46, "tests": 543, "passed": true },
+    "shard2": { "files": 46, "tests": 906, "passed": true }
+  },
+  "purity": {
+    "runtime": true,
+    "filters": true,
+    "export": true,
+    "defaultExportColumns": 267
+  },
+  "telemetryBenchmark": {
+    "sourceTrades": 100,
+    "rawJsonBytes": 8921558,
+    "runtimeCompactJsonBytes": 1219807,
+    "defaultV8ExportJsonBytes": 1122281,
+    "defaultV8CsvBytes": 449617,
+    "defaultExportReductionPct": 87.42,
+    "heavyDuplicateFieldsInDefaultExport": 0
+  },
+  "fiveMinuteSoak": {
+    "realWallClock": true,
+    "liveMarket": false,
+    "runs": 3,
+    "secondsPerRun": 300,
+    "totalTrades": 150,
+    "closedTrades": 150,
+    "invalidFinalPnl": 0,
+    "heavyDuplicateFields": 0,
+    "allRunsPassed": true,
+    "peakHeapMiB": 13.374,
+    "maxEventLoopLagMs": 13.05
+  },
+  "externalNetworkBoundary": "The sandbox could not resolve/access Binance, so the three five-minute runs used deterministic market profiles with production lifecycle modules."
+}

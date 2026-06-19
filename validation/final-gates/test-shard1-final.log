@@ -1,0 +1,299 @@
+
+> longlab@1.0.4 test:unit:shard1
+> vitest run --pool=forks --maxWorkers=2 --minWorkers=1 --testTimeout=15000 --hookTimeout=15000 --shard=1/2
+
+
+[1m[7m[36m RUN [39m[27m[22m [36mv2.1.9 [39m[90m/mnt/data/LongLAB-main-june17-telemetry-v8-work[39m
+
+ [32m✓[39m src/exitProfiles/dynamicExitProfiles.test.js [2m([22m[2m21 tests[22m[2m)[22m[90m 24[2mms[22m[39m
+ [32m✓[39m src/filters/longFilterEngine.test.js [2m([22m[2m40 tests[22m[2m)[22m[90m 48[2mms[22m[39m
+ [32m✓[39m src/telemetry/advancedMarketTelemetry.test.js [2m([22m[2m22 tests[22m[2m)[22m[90m 82[2mms[22m[39m
+ [32m✓[39m src/research/cockpitConsolidation.test.js [2m([22m[2m44 tests[22m[2m)[22m[90m 134[2mms[22m[39m
+ [32m✓[39m src/fees/feeSafeProfitLock.test.js [2m([22m[2m18 tests[22m[2m)[22m[90m 19[2mms[22m[39m
+ [32m✓[39m src/audits/bestDnaAudit.test.js [2m([22m[2m16 tests[22m[2m)[22m[90m 34[2mms[22m[39m
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mmaybeShadowEntry[2m > [22m[2mcreates a shadow trade when conditions are met
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mmaybeShadowEntry[2m > [22m[2mone active shadow per symbol
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mmaybeShadowEntry[2m > [22m[2mfrozen entry telemetry fields are set
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2massertShadowSafe[2m > [22m[2mdoes not throw for valid shadow trade
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mupdateShadowTradeBroadScan[2m > [22m[2mupdates currentPrice and MAE/MFE — LONG: price up = MFE (favorable)
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mupdateShadowTradeBroadScan[2m > [22m[2mrecords enteredTop50 milestone
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m60[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_51_100'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mupdateShadowTradeBroadScan[2m > [22m[2mdoes not overwrite already-set milestone timestamps
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m60[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_51_100'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mevaluateShadowExit[2m > [22m[2mcloses on SL when price falls 1% — LONG: down move triggers stop loss
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+[AES_DISCOVERY_SHADOW_EXIT] {
+  symbol: [32m'TESTUSDT'[39m,
+  closeReason: [32m'SL'[39m,
+  finalPnlPct: [33m-3[39m,
+  normFeeAdjustedPnlPct: [33m-1.1[39m,
+  mfe: [33m0[39m,
+  mae: [33m1.100000000000001[39m,
+  holdMsActual: [33m5000[39m,
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mevaluateShadowExit[2m > [22m[2mcalculates fee-adjusted PnL correctly on LONG SL
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+[AES_DISCOVERY_SHADOW_EXIT] {
+  symbol: [32m'TESTUSDT'[39m,
+  closeReason: [32m'SL'[39m,
+  finalPnlPct: [33m-3[39m,
+  normFeeAdjustedPnlPct: [33m-1.1[39m,
+  mfe: [33m0[39m,
+  mae: [33m1.100000000000001[39m,
+  holdMsActual: [33m5000[39m,
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mevaluateShadowExit[2m > [22m[2mdoes not close open trade if no exit condition met
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+[90mstdout[2m | src/aesDiscovery/aesDiscoveryShadowEngine.test.js[2m > [22m[2mshadow isolation[2m > [22m[2mshadow trade has isShadowTrade=true and can never have an orderId
+[22m[39m[AES_DISCOVERY_SHADOW_ENTRY] {
+  symbol: [32m'TESTUSDT'[39m,
+  side: [32m'LOSER'[39m,
+  side24hRank: [33m40[39m,
+  rankBand: [32m'RANK_26_50'[39m,
+  aesFull: [33m72[39m,
+  aesNoRank: [33m70[39m,
+  aesSetupOnly: [33m68[39m,
+  telemetryCoveragePct: [33m85[39m,
+  labels: [
+    [32m'AES_RANK_26_50'[39m,
+    [32m'AES_OUTSIDE_TOP25'[39m,
+    [32m'AES_WATCH_60_PLUS'[39m,
+    [32m'HIGH_AES_70_PLUS'[39m,
+    [32m'HIGH_AES_NO_RANK'[39m
+  ],
+  executionMode: [32m'LOG_ONLY'[39m
+}
+
+ [32m✓[39m src/aesDiscovery/aesDiscoveryShadowEngine.test.js [2m([22m[2m14 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/telemetry/rsiTelemetry.test.js [2m([22m[2m19 tests[22m[2m)[22m[90m 38[2mms[22m[39m
+ [32m✓[39m src/filters/filterAnalytics.test.js [2m([22m[2m11 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/domain/longTradeMath.test.js [2m([22m[2m28 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/export/longBatchExport.test.js [2m([22m[2m9 tests[22m[2m)[22m[90m 139[2mms[22m[39m
+ [32m✓[39m src/aesDiscovery/aesDiscoveryUniverse.test.js [2m([22m[2m21 tests[22m[2m)[22m[90m 30[2mms[22m[39m
+ [32m✓[39m src/filters/cockpitUiLogic.test.js [2m([22m[2m12 tests[22m[2m)[22m[90m 33[2mms[22m[39m
+ [32m✓[39m src/filters/longFilterAnalytics.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 25[2mms[22m[39m
+ [32m✓[39m src/research/longEntryPipelineParity.test.js [2m([22m[2m12 tests[22m[2m)[22m[90m 124[2mms[22m[39m
+ [32m✓[39m src/audits/bestDnaLongAudit.test.js [2m([22m[2m19 tests[22m[2m)[22m[90m 23[2mms[22m[39m
+ [32m✓[39m src/shadowLong/shadowLongFilters.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 26[2mms[22m[39m
+ [32m✓[39m src/research/buildLongEntryResearchSnapshot.integration.test.js [2m([22m[2m13 tests[22m[2m)[22m[90m 152[2mms[22m[39m
+ [32m✓[39m src/scoring/longAbsoluteEntryScore/longAbsoluteEntryScore.test.js [2m([22m[2m15 tests[22m[2m)[22m[90m 31[2mms[22m[39m
+ [32m✓[39m src/filters/longWinningSetups.test.js [2m([22m[2m10 tests[22m[2m)[22m[90m 35[2mms[22m[39m
+ [32m✓[39m src/marketRegime/marketBreathLogOnly.test.js [2m([22m[2m11 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/longBuckets/longBucketClassifier.test.js [2m([22m[2m12 tests[22m[2m)[22m[90m 20[2mms[22m[39m
+ [32m✓[39m src/telemetry/feeTelemetry.test.js [2m([22m[2m28 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/fees/feeAccounting.longFloor.test.js [2m([22m[2m8 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/entryPolicy/sniperShortGateLogOnly.test.js [2m([22m[2m12 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/funding/fundingTelemetry.test.js [2m([22m[2m20 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+ [32m✓[39m src/entryPolicy/longAuditDangerLogOnly.test.js [2m([22m[2m10 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/vwapFlip/vwapFlipState.test.js [2m([22m[2m14 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/migrations/migrateLongTradeRecord.v5.test.js [2m([22m[2m4 tests[22m[2m)[22m[90m 16[2mms[22m[39m
+ [32m✓[39m src/scoring/postFee10/postFee10.rankings.test.js [2m([22m[2m6 tests[22m[2m)[22m[90m 14[2mms[22m[39m
+ [32m✓[39m src/vwapFlip/vwapFlipTracker.test.js [2m([22m[2m6 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/research/longWinningSignals.test.js [2m([22m[2m6 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/fees/feeMigration.test.js [2m([22m[2m8 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/export/longTradeExportSchema.v5.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/fees/profitLockTelemetry.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/lifecycle/tradeFinalization.test.js [2m([22m[2m4 tests[22m[2m)[22m[90m 13[2mms[22m[39m
+ [32m✓[39m src/longAudits/topLoserReversalAudit.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/filters/longFilterRegistry.v2.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 22[2mms[22m[39m
+ [32m✓[39m src/audits/bestDnaLongAuditV2.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/ui/appStabilitySource.test.js [2m([22m[2m3 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/filters/longFilterSnapshot.v5.test.js [2m([22m[2m1 test[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/scoring/longAbsoluteEntryScore/longAbsoluteEntryScore.v2Shadow.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 8[2mms[22m[39m
+ [32m✓[39m src/export/longBatchExportTransport.test.js [2m([22m[2m1 test[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/lifecycle/closeReasons.test.js [2m([22m[2m2 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+ [32m✓[39m src/filters/evaluateLongWinningSetupMatches.test.js [2m([22m[2m1 test[22m[2m)[22m[90m 9[2mms[22m[39m
+ [32m✓[39m src/research/entrySnapshotProvenance.test.js [2m([22m[2m1 test[22m[2m)[22m[90m 5[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m46 passed[39m[22m[90m (46)[39m
+[2m      Tests [22m [1m[32m543 passed[39m[22m[90m (543)[39m
+[2m   Start at [22m 10:07:33
+[2m   Duration [22m 25.33s[2m (transform 1.75s, setup 0ms, collect 5.75s, tests 1.40s, environment 22ms, prepare 12.56s)[22m
+

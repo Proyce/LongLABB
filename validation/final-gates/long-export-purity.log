@@ -1,0 +1,19 @@
+
+> longlab@1.0.4 check:long-export-purity
+> node scripts/check-long-export-purity.mjs
+
+
+LONG EXPORT PURITY CHECK
+Checking 267 columns...
+
+  ✓ Keys: 267 total, 267 unique
+  ✓ Headers: 267 total, 267 unique
+  ✓ No deprecated keys found
+  ✓ All required keys present
+  ✓ tradeSchemaVersion = "LONG_TRADE_EXPORT_V8"
+  ✓ No [object Object] output in serialized values
+  ✓ All getValue functions callable with empty trade
+  ✓ Populated V8 trade: all 22 critical columns populate
+
+✓ PASS
+
