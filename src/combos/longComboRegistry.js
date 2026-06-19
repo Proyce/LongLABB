@@ -11,7 +11,7 @@ import {
   normalizeLongCvdLabel,
 } from "../research/longWinningSignals.js";
 
-export const LONG_COMBO_REGISTRY_VERSION = "long-combo-v3";
+export const LONG_COMBO_REGISTRY_VERSION = "LONG_COMBO_REGISTRY_V4_2026_06";
 
 function makeCombo(comboId, label, check) {
   const combo = (sample) => {
@@ -315,6 +315,94 @@ export const LONG_ANTI_COMBOS = [
   LONG_FALLING_KNIFE_ANTI_V1,
   LONG_RED_CVD_BEAR_ANTI_V1,
 ];
+
+// Genuine tick hypotheses are deliberately separate from proven positive and
+// anti-combos. They are observatory labels, never execution evidence.
+export const LONG_TICK_RESEARCH_HYPOTHESES = Object.freeze([
+  {
+    id: "LONG_HIGH_ATR_TICK_UP_EXPANSION_V1",
+    risk: false,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      s.marketTickPrimaryPattern === "TICK_UP_EXPANSION" &&
+      Number(s.marketTickDirectionConfidenceScore) >= 70 &&
+      ["COMPLETE", "PARTIAL"].includes(s.entryTickDataQuality),
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_BULLISH_REVERSAL_V1",
+    risk: false,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      s.marketTickPrimaryPattern === "TICK_BULLISH_REVERSAL" &&
+      !["SELL", "STRONG_SELL"].includes(s.marketTickAggressorFlowLabel3s) &&
+      Number(s.marketTickDirectionConfidenceScore) >= 60,
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_UP_FLOW_AGREEMENT_V1",
+    risk: false,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      ["UP", "STRONG_UP"].includes(s.marketTickDirectionVerdict) &&
+      ["BUY", "STRONG_BUY"].includes(s.marketTickAggressorFlowLabel3s) &&
+      s.marketTickTradeBookAgreement3s === "AGREE_UP",
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_MULTI_TIMEFRAME_UP_V1",
+    risk: false,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      s.marketTickDirection3s === "UP" &&
+      s.marketTickDirection10s === "UP",
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_UP_PLUS_DNA80_V1",
+    risk: false,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      ["UP", "STRONG_UP"].includes(s.marketTickDirectionVerdict) &&
+      Number(s.bestDnaLongScore) >= 80,
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_UP_PLUS_GATE60_V1",
+    risk: false,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      ["UP", "STRONG_UP"].includes(s.marketTickDirectionVerdict) &&
+      Number(s.longGateScore) >= 60,
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_DOWN_ACCELERATION_RISK_V1",
+    risk: true,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      ["DOWN", "STRONG_DOWN"].includes(s.marketTickDirectionVerdict) &&
+      Number(s.marketTickAccelerationBpsPerSec2_3s) < 0 &&
+      Number(s.marketTickDirectionConfidenceScore) >= 65,
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_CHAOS_RISK_V1",
+    risk: true,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      s.marketTickPrimaryPattern === "TICK_HIGH_VOL_CHAOS",
+  },
+  {
+    id: "LONG_HIGH_ATR_TICK_UP_DECELERATION_RISK_V1",
+    risk: true,
+    match: s => Number(s.atrPct) >= 0.6 &&
+      s.marketTickPrimaryPattern === "TICK_UP_DECELERATION",
+  },
+]);
+
+export function evaluateLongTickResearchHypotheses(sample = {}) {
+  const matched = LONG_TICK_RESEARCH_HYPOTHESES.filter(hypothesis => {
+    try { return hypothesis.match(sample) === true; } catch { return false; }
+  });
+  const positive = matched.filter(hypothesis => !hypothesis.risk).map(hypothesis => hypothesis.id);
+  const risk = matched.filter(hypothesis => hypothesis.risk).map(hypothesis => hypothesis.id);
+  return {
+    longTickResearchHypothesesMatched: positive,
+    longTickResearchHypothesesCount: positive.length,
+    longTickRiskPatternsMatched: risk,
+    longTickRiskPatternsCount: risk.length,
+    longTickResearchPromotionStatus: matched.length ? "EARLY_RESEARCH" : "COLLECTING",
+    logOnly: true,
+    canAffectExecution: false,
+    executionApplied: false,
+  };
+}
 
 export function evaluateLongCombos(sample) {
   const positive = LONG_POSITIVE_COMBOS.map(fn => fn(sample));

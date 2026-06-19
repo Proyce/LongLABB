@@ -436,6 +436,38 @@ if (/t\.postFee10PotentialScoreV2\b/.test(filterAnalyticsContent)) {
   });
 }
 
+// Genuine tick-direction fields are observatory-only. Execution-facing gates,
+// scorers, policies, sizing, and exit selectors must not consume them.
+const TICK_EXECUTION_GUARD_PATHS = [
+  "src/longGate",
+  "src/scoring/longAbsoluteEntryScore",
+  "src/scoring/longCandidateRunner",
+  "src/scoring/longPostFee10",
+  "src/entryPolicy",
+  "src/exitProfiles",
+  "src/lifecycle/openPositionLifecycle.js",
+  "src/lifecycle/profitLockStrategy.js",
+  "src/lifecycle/profitLockProtection.js",
+];
+for (const relativePath of TICK_EXECUTION_GUARD_PATHS) {
+  const absolutePath = join(ROOT, relativePath);
+  let guardedFiles = [];
+  try {
+    guardedFiles = statSync(absolutePath).isDirectory() ? getAllJsFiles(absolutePath) : [absolutePath];
+  } catch {
+    continue;
+  }
+  for (const file of guardedFiles.filter(path => !path.includes(".test."))) {
+    const content = readFileSync(file, "utf8");
+    if (/\b(?:marketTick|entryTick|highAtrDirectionalOpportunity)/.test(content)) {
+      totalViolations.push({
+        file: relative(ROOT, file).replace(/\\/g, "/"),
+        reason: "Tick-direction research fields must not influence execution-facing gates, scorers, policies, sizing, or exits",
+      });
+    }
+  }
+}
+
 // ── Report ─────────────────────────────────────────────────────────────────
 
 if (totalViolations.length === 0) {

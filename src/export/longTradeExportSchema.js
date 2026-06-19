@@ -47,6 +47,101 @@ function get(field) {
   return t => t?.[field] ?? null;
 }
 
+const TICK_DIRECTION_ENTRY_EXPORT_FIELDS = Object.freeze([
+  "entryTickSnapshotVersion", "entryTickSnapshotCapturedAt", "entryTickWindowEndAt",
+  "entryTickOldestEventAt", "entryTickNewestEventAt", "entryTickWarmupMs",
+  "entryTickFreshnessMs", "entryTickCanonicalSource", "entryTickTimestampBasis",
+  "entryTickDataQuality", "entryTickMissingReasons", "entryTickStreamHealthyAtEntry",
+  "entryTickReferencePrice", "entryTickReferencePriceSource", "entryTickReferenceVsTradeEntryBps",
+  "entryTickRequiredFieldCount", "entryTickKnownFieldCount", "entryTickCoveragePct",
+  "entryTickTradeEventCount", "entryTickBookEventCount", "entryTickAtrPctObserved",
+  "entryTickSpreadPctObserved", "marketTickPrimaryPattern", "marketTickSupportingLabels",
+  "marketTickAtrTier", "highAtrTickContextLabel", "marketTickDirectionalBiasScore",
+  "marketTickDirectionConfidenceScore", "marketTickDirectionVerdict",
+  "highAtrDirectionalOpportunityScore", "highAtrDirectionalOpportunityTier",
+  "highAtrDirectionalOpportunityReasons", "marketTickDirection3", "marketTickDirection5",
+  "marketTickDirection10", "marketTickUpCount3", "marketTickUpCount5", "marketTickUpCount10",
+  "marketTickDownCount3", "marketTickDownCount5", "marketTickDownCount10",
+  "marketTickFlatCount3", "marketTickFlatCount5", "marketTickFlatCount10",
+  "marketTickCurrentUpStreak", "marketTickCurrentDownStreak",
+  "marketTickMaxUpStreak10", "marketTickMaxDownStreak10", "marketTickReversalCount10",
+  "marketTickSequenceSignature10", "marketTickRunSignature10",
+  "marketTickDirection1s", "marketTickDirection3s", "marketTickDirection5s",
+  "marketTickDirection10s", "marketTickDirection30s",
+  "marketTickEventCount1s", "marketTickEventCount3s", "marketTickEventCount5s",
+  "marketTickEventCount10s", "marketTickEventCount30s",
+  "marketTickDistinctPriceCount1s", "marketTickDistinctPriceCount3s",
+  "marketTickDistinctPriceCount5s", "marketTickDistinctPriceCount10s",
+  "marketTickDistinctPriceCount30s", "marketTickNetMoveBps1s", "marketTickNetMoveBps3s",
+  "marketTickNetMoveBps5s", "marketTickNetMoveBps10s", "marketTickNetMoveBps30s",
+  "marketTickGrossMoveBps1s", "marketTickGrossMoveBps3s", "marketTickGrossMoveBps5s",
+  "marketTickGrossMoveBps10s", "marketTickGrossMoveBps30s", "marketTickEfficiency1s",
+  "marketTickEfficiency3s", "marketTickEfficiency5s", "marketTickEfficiency10s",
+  "marketTickEfficiency30s", "marketTickUpRatio1s", "marketTickUpRatio3s",
+  "marketTickUpRatio5s", "marketTickUpRatio10s", "marketTickUpRatio30s",
+  "marketTickDownRatio1s", "marketTickDownRatio3s", "marketTickDownRatio5s",
+  "marketTickDownRatio10s", "marketTickDownRatio30s", "marketTickFlatRatio1s",
+  "marketTickFlatRatio3s", "marketTickFlatRatio5s", "marketTickFlatRatio10s",
+  "marketTickFlatRatio30s", "marketTickReversalCount1s", "marketTickReversalCount3s",
+  "marketTickReversalCount5s", "marketTickReversalCount10s", "marketTickReversalCount30s",
+  "marketTickVelocityBpsPerSec1s", "marketTickVelocityBpsPerSec3s",
+  "marketTickVelocityBpsPerSec5s", "marketTickVelocityBpsPerSec10s",
+  "marketTickVelocityBpsPerSec30s", "marketTickAccelerationBpsPerSec2_1s",
+  "marketTickAccelerationBpsPerSec2_3s", "marketTickAccelerationBpsPerSec2_5s",
+  "marketTickAccelerationBpsPerSec2_10s", "marketTickAccelerationBpsPerSec2_30s",
+  "marketTickMeanInterArrivalMs1s", "marketTickMeanInterArrivalMs3s",
+  "marketTickMeanInterArrivalMs5s", "marketTickMeanInterArrivalMs10s",
+  "marketTickMeanInterArrivalMs30s", "marketTickMedianInterArrivalMs1s",
+  "marketTickMedianInterArrivalMs3s", "marketTickMedianInterArrivalMs5s",
+  "marketTickMedianInterArrivalMs10s", "marketTickMedianInterArrivalMs30s",
+  "marketTickAggressorFlowLabel3s", "marketTickAggressorFlowLabel10s",
+  "marketTickBuyTradeCount3s", "marketTickBuyTradeCount10s",
+  "marketTickSellTradeCount3s", "marketTickSellTradeCount10s",
+  "marketTickBuyQuoteVolume3s", "marketTickBuyQuoteVolume10s",
+  "marketTickSellQuoteVolume3s", "marketTickSellQuoteVolume10s",
+  "marketTickAggressorCountImbalance3s", "marketTickAggressorCountImbalance10s",
+  "marketTickAggressorVolumeImbalance3s", "marketTickAggressorVolumeImbalance10s",
+  "marketTickSignedQuoteFlow3s", "marketTickSignedQuoteFlow10s",
+  "marketTickBookImbalanceLatest", "marketTickBookImbalanceMean1s",
+  "marketTickBookImbalanceMean3s", "marketTickBookImbalanceMean10s",
+  "marketTickBookImbalanceSlope1s", "marketTickBookImbalanceSlope3s",
+  "marketTickBookImbalanceSlope10s", "marketTickSpreadLatestPct",
+  "marketTickSpreadMean1s", "marketTickSpreadMean3s", "marketTickSpreadMean10s",
+  "marketTickSpreadChangeBps1s", "marketTickSpreadChangeBps3s",
+  "marketTickSpreadChangeBps10s",
+  "marketTickBookPressureLabel", "marketTickTradeDirection3s", "marketTickBookDirection3s",
+  "marketTickTradeBookAgreement3s", "marketTickTradeDirection10s",
+  "marketTickBookDirection10s", "marketTickTradeBookAgreement10s",
+  "marketTickRsiAgreement", "marketTickMacdAgreement", "marketTickCvdAgreement",
+  "marketTickGreenRedAgreement", "marketTickVwapAgreement",
+  "marketTickIndicatorAgreementCount", "marketTickIndicatorConflictCount",
+  "marketTickEvidenceAgreementLabel", "longTickResearchHypothesesMatched",
+  "longTickResearchHypothesesCount", "longTickRiskPatternsMatched",
+  "longTickRiskPatternsCount", "longTickResearchPromotionStatus",
+  "marketTickPromotionStatus", "marketTickCanAffectExecution", "marketTickExecutionApplied",
+]);
+
+const TICK_DIRECTION_OUTCOME_EXPORT_FIELDS = Object.freeze([
+  "marketTickNeutralThresholdBps", "marketTickOutcomeCoveragePct", "marketTickOutcomeAuditVersion",
+  ...["1s", "3s", "5s", "10s", "30s", "60s"].flatMap(horizon => [
+    `marketTickForwardPrice${horizon}`,
+    `marketTickForwardMoveBps${horizon}`,
+    `marketTickForwardDirection${horizon}`,
+    `marketTickPredictionCorrect${horizon}`,
+    `marketTickPredictionResult${horizon}`,
+    `marketTickPredictionLatencyMs${horizon}`,
+    `marketTickOutcomeSource${horizon}`,
+  ]),
+]);
+
+const TICK_DIRECTION_JSON_FIELDS = new Set([
+  "entryTickMissingReasons",
+  "marketTickSupportingLabels",
+  "highAtrDirectionalOpportunityReasons",
+  "longTickResearchHypothesesMatched",
+  "longTickRiskPatternsMatched",
+]);
+
 // ── Core trade fields ──────────────────────────────────────────────────────────
 
 export const LONG_TRADE_FORENSIC_EXPORT_COLUMNS = [
@@ -188,6 +283,13 @@ export const LONG_TRADE_FORENSIC_EXPORT_COLUMNS = [
   colJson("longFilterConflictingFields", get("longFilterConflictingFields")),
   colJson("longFilterStaleFields",     get("longFilterStaleFields")),
   colJson("entryResearchComponentErrors", get("entryResearchComponentErrors")),
+
+  // Genuine tick-direction observatory. Raw event buffers are runtime-only and
+  // never enter this scalar export contract.
+  ...TICK_DIRECTION_ENTRY_EXPORT_FIELDS.map(field =>
+    TICK_DIRECTION_JSON_FIELDS.has(field) ? colJson(field, get(field)) : col(field, get(field))
+  ),
+  ...TICK_DIRECTION_OUTCOME_EXPORT_FIELDS.map(field => col(field, get(field))),
 
   // ── June 16 winning-setups entry signals ───────────────────────────────────
   col("longGateResearchBandV2", get("longGateResearchBandV2")),

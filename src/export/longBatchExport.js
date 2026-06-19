@@ -13,8 +13,13 @@ import {
 import { longFeeAdjustedNormPnlPct } from './runOutcomeRanking.js';
 import { LONG_TRADE_EXPORT_VERSION, LONG_RESEARCH_VERSION_STAMP } from '../research/longResearchSchemaVersions.js';
 import { buildExceptionalForensicEvent } from '../telemetry/telemetryCompaction.js';
+import {
+  TICK_DIRECTION_CONFIG,
+  TICK_DIRECTION_STREAM_SCHEMA_VERSION,
+  TICK_DIRECTION_VERSION,
+} from '../tickDirection/tickDirection.config.js';
 
-export const LONG_BATCH_EXPORT_VERSION = 'LONG_BATCH_ANALYSIS_V3_TELEMETRY_V8';
+export const LONG_BATCH_EXPORT_VERSION = 'LONG_BATCH_ANALYSIS_V4_TICK_DIRECTION_V1';
 export const LONG_BATCH_RUN_LIMIT = 20;
 
 export const LONG_BATCH_HEAVY_FORENSIC_FIELDS = Object.freeze([
@@ -22,6 +27,7 @@ export const LONG_BATCH_HEAVY_FORENSIC_FIELDS = Object.freeze([
   'longComboDetails',
   'longWinningSetupMatchDetails',
   'entrySnapshotFieldStatus',
+  'entryTickSnapshot',
 ]);
 
 export const LONG_BATCH_ANALYSIS_COLUMNS = Object.freeze(
@@ -486,8 +492,23 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
       forensicEvents: forensicEvents.length,
       files: 0,
     },
-    telemetryStorageProfile: 'LONG_TELEMETRY_V8_COMPACT',
+    telemetryStorageProfile: 'LONG_TELEMETRY_V9_COMPACT',
     canonicalVersions: LONG_RESEARCH_VERSION_STAMP,
+    tickDirectionVersion: TICK_DIRECTION_VERSION,
+    tickDirectionConfig: TICK_DIRECTION_CONFIG,
+    tickDirectionWindowDefinitions: {
+      countWindows: TICK_DIRECTION_CONFIG.countWindows,
+      timeWindowsMs: TICK_DIRECTION_CONFIG.timeWindowsMs,
+      outcomeHorizonsMs: TICK_DIRECTION_CONFIG.outcomeHorizonsMs,
+    },
+    tickDirectionThresholds: {
+      flatThresholdBps: TICK_DIRECTION_CONFIG.flatThresholdBps,
+      cleanDirectionEfficiencyMin: TICK_DIRECTION_CONFIG.cleanDirectionEfficiencyMin,
+      cleanDirectionDominanceMin: TICK_DIRECTION_CONFIG.cleanDirectionDominanceMin,
+      staleAfterMs: TICK_DIRECTION_CONFIG.staleAfterMs,
+    },
+    tickDirectionNeutralTargetRule: 'max(0.5 bps, entrySpreadPct * 10000 * 0.5)',
+    tickDirectionStreamSchemaVersion: TICK_DIRECTION_STREAM_SCHEMA_VERSION,
     files: {
       masterCsv: `${root}/master/trades.csv`,
       masterJsonl: `${root}/master/trades.jsonl`,
@@ -534,7 +555,7 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
       '9. `forensics/exit_events.jsonl` for sparse exceptional lifecycle evidence.',
       '',
       'The master files are deduplicated by trade ID and retain the newest/final state.',
-      'The V8 master contract is compact: duplicate nested objects and row-constant registry metadata are moved out of every trade row.',
+      'The V9 master contract is compact: raw tick histories and duplicate nested objects are excluded from trade rows.',
       'Exceptional lifecycle evidence is persisted sparsely in `forensics/exit_events.jsonl`.',
       'Missing telemetry remains missing; it is not converted to a false rule match.',
       'Research-clean files contain only closed, strategyResearchEligible trades.',
@@ -559,8 +580,9 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
       exportSchemaVersion: LONG_TRADE_EXPORT_VERSION,
       columns: LONG_BATCH_ANALYSIS_COLUMNS.map(column => ({ key: column.key, header: column.header })),
       omittedHeavyForensicFields: LONG_BATCH_HEAVY_FORENSIC_FIELDS,
-      telemetryStorageProfile: 'LONG_TELEMETRY_V8_COMPACT',
+      telemetryStorageProfile: 'LONG_TELEMETRY_V9_COMPACT',
       canonicalVersions: LONG_RESEARCH_VERSION_STAMP,
+      tickDirectionVersion: TICK_DIRECTION_VERSION,
     }, null, 2),
     [`${root}/schema/observed_versions.json`]: JSON.stringify(observedVersions, null, 2),
     [`${root}/schema/analysis_contract.json`]: JSON.stringify({

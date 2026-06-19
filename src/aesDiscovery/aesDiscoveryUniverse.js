@@ -47,6 +47,8 @@ export function classifyRankBand(rank, rankBands) {
 
 // ── Rolling tick history helpers ──────────────────────────────────────────────
 
+// Legacy name: this stores periodic broad 24-hour ticker snapshots, not genuine
+// bookTicker/aggTrade events.
 export function updateTickHistory(historyStore, allEligible, config, now = Date.now()) {
   const maxAge = config.tickHistoryMaxAgeMs;
   const maxSnaps = config.tickHistoryMaxSnapshots;

@@ -179,8 +179,8 @@ describe('Long batch analysis export', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].tradeId).toBe('floor-miss');
     expect(result.manifest.counts.forensicEvents).toBe(1);
-    expect(result.manifest.telemetryStorageProfile).toBe('LONG_TELEMETRY_V8_COMPACT');
-    expect(result.manifest.canonicalVersions.tradeSchemaVersion).toBe('LONG_TRADE_EXPORT_V8');
+    expect(result.manifest.telemetryStorageProfile).toBe('LONG_TELEMETRY_V9_COMPACT');
+    expect(result.manifest.canonicalVersions.tradeSchemaVersion).toBe('LONG_TRADE_EXPORT_V9');
   });
 
 });

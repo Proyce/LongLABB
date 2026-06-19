@@ -31,6 +31,20 @@ export function buildEntrySnapshotProvenance(sample = {}, capturedAt = Date.now(
     if (fieldStatus === ENTRY_FIELD_STATUS.RECORDED) recorded++;
   }
   const completenessPct = Math.round((recorded / CORE_FIELDS.length) * 100);
+  const tickRequiredFields = [
+    'entryTickDataQuality',
+    'entryTickCanonicalSource',
+    'marketTickDirectionVerdict',
+    'marketTickPrimaryPattern',
+    'marketTickDirection3s',
+    'marketTickDirection10s',
+    'marketTickDirectionalBiasScore',
+    'marketTickDirectionConfidenceScore',
+  ];
+  const tickKnown = tickRequiredFields.filter(field => {
+    const value = sample[field];
+    return value !== null && value !== undefined && value !== 'INSUFFICIENT';
+  }).length;
   return Object.freeze({
     entrySnapshotCapturedAt: capturedAt,
     entrySnapshotMarketDataTimestamp: sample.marketDataTimestamp ?? sample.entryTime ?? capturedAt,
@@ -38,5 +52,9 @@ export function buildEntrySnapshotProvenance(sample = {}, capturedAt = Date.now(
     entrySnapshotRequiredFieldsComplete: recorded === CORE_FIELDS.length,
     entrySnapshotFieldStatus: status,
     entrySnapshotProvenanceVersion: 'ENTRY_PROVENANCE_V1_2026_06',
+    entryTickRequiredFieldCount: sample.entryTickRequiredFieldCount ?? tickRequiredFields.length,
+    entryTickKnownFieldCount: sample.entryTickKnownFieldCount ?? tickKnown,
+    entryTickCoveragePct: sample.entryTickCoveragePct ?? Math.round((tickKnown / tickRequiredFields.length) * 100),
+    entryTickDataQuality: sample.entryTickDataQuality ?? 'INSUFFICIENT',
   });
 }

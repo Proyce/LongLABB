@@ -20,7 +20,7 @@ describe('LongLAB V8 telemetry compaction', () => {
     expect(result.longAesV2ComponentWeights).toBeUndefined();
     expect(result.cvdStateCurrent).toBeUndefined();
     expect(result.grossNormPnlPct).toBe(1.2);
-    expect(result.telemetryStorageProfile).toBe('LONG_TELEMETRY_V8_COMPACT');
+    expect(result.telemetryStorageProfile).toBe('LONG_TELEMETRY_V9_COMPACT');
     expect(input.entryResearchSnapshot).toEqual({ huge: true });
   });
 

@@ -179,6 +179,14 @@ import { buildLongBatchDescriptors, selectLongBatchTrades } from "../export/long
 import { downloadBlob, exportLongBatchAnalysisZip } from "../export/longBatchExporter.js";
 import { finiteNumberOrNull, safeFixed, safeSignedPercent, safeRound, hasFiniteClosedPnl, safeSymbol } from "../ui/safeFormat.js";
 import { compactLongTradeForRuntime, compactLongTradesForPersistence } from "../telemetry/telemetryCompaction.js";
+import { createTickDirectionCollector } from "../tickDirection/candidateTickStream.js";
+import { TICK_DIRECTION_CONFIG } from "../tickDirection/tickDirection.config.js";
+import { captureTickDirectionSnapshot } from "../tickDirection/tickDirectionSnapshot.js";
+import {
+  buildTickDirectionOutcomeDefaults,
+  censorUnfilledTickDirectionOutcomes,
+  updateTickDirectionOutcomeAudit,
+} from "../tickDirection/tickDirectionOutcomeAudit.js";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const FAPI       = "https://fapi.binance.com/fapi/v1";
@@ -361,9 +369,12 @@ function extractEntryTiming(klines, entryPrice, spreadPct) {
   const sum3   = last3.reduce((a,k)  => a + dirOf(k), 0);
   const sum5   = last5.reduce((a,k)  => a + dirOf(k), 0);
   const sum10  = last10.reduce((a,k) => a + dirOf(k), 0);
-  const last3TicksDirection  = sum3  >= 3  ? "DOWN" : sum3  <= -3  ? "UP" : "MIXED";
-  const last5TicksDirection  = sum5  >= 4  ? "DOWN" : sum5  <= -4  ? "UP" : "MIXED";
-  const last10TicksDirection = sum10 >= 8  ? "DOWN" : sum10 <= -8  ? "UP" : "MIXED";
+  const last3ClosedCandlesDirection  = sum3  >= 3  ? "DOWN" : sum3  <= -3  ? "UP" : "MIXED";
+  const last5ClosedCandlesDirection  = sum5  >= 4  ? "DOWN" : sum5  <= -4  ? "UP" : "MIXED";
+  const last10ClosedCandlesDirection = sum10 >= 8  ? "DOWN" : sum10 <= -8  ? "UP" : "MIXED";
+  const last3TicksDirection = last3ClosedCandlesDirection;
+  const last5TicksDirection = last5ClosedCandlesDirection;
+  const last10TicksDirection = last10ClosedCandlesDirection;
   const highs5  = last5.map(k => parseFloat(k[2]));
   const lows5   = last5.map(k => parseFloat(k[3]));
   const closes5 = last5.map(k => parseFloat(k[4]));
@@ -411,6 +422,9 @@ function extractEntryTiming(klines, entryPrice, spreadPct) {
     grade = "C"; reasons.push("UNCERTAIN");
   }
   return {
+    last3ClosedCandlesDirection, last5ClosedCandlesDirection, last10ClosedCandlesDirection,
+    closedCandleDirectionTimeframe: "1m",
+    legacyTickDirectionSemantic: "ONE_MINUTE_CANDLE_DIRECTION_ALIAS",
     last3TicksDirection, last5TicksDirection, last10TicksDirection,
     preEntryAdverseMovePct, preEntryFavorableMovePct,
     priceVsRecentLowPct, priceVsRecentHighPct, priceVsVwapPct,
@@ -1061,14 +1075,23 @@ const extractKlineSignals = klines => {
   const dirOf  = k => parseFloat(k[4]) < parseFloat(k[1]) ? 1 : -1;
   const sum3   = closed.slice(-3).reduce((a,k) => a + dirOf(k), 0);
   const sum5   = closed.slice(-5).reduce((a,k) => a + dirOf(k), 0);
-  const last3TicksDirection = sum3 >= 3 ? "DOWN" : sum3 <= -3 ? "UP" : "MIXED";
-  const last5TicksDirection = sum5 >= 4 ? "DOWN" : sum5 <= -4 ? "UP" : "MIXED";
+  const sum10  = closed.slice(-10).reduce((a,k) => a + dirOf(k), 0);
+  const last3ClosedCandlesDirection = sum3 >= 3 ? "DOWN" : sum3 <= -3 ? "UP" : "MIXED";
+  const last5ClosedCandlesDirection = sum5 >= 4 ? "DOWN" : sum5 <= -4 ? "UP" : "MIXED";
+  const last10ClosedCandlesDirection = sum10 >= 8 ? "DOWN" : sum10 <= -8 ? "UP" : "MIXED";
 
   return {
     cvdRatio, cvdLabel, atrPct, volAccel,
     candleColorAtEntry, immediateRedImpulse, immediateGreenImpulse,
     redImpulseDetected, greenImpulseDetected,
-    last3TicksDirection, last5TicksDirection,
+    last3ClosedCandlesDirection,
+    last5ClosedCandlesDirection,
+    last10ClosedCandlesDirection,
+    closedCandleDirectionTimeframe: "1m",
+    legacyTickDirectionSemantic: "ONE_MINUTE_CANDLE_DIRECTION_ALIAS",
+    last3TicksDirection: last3ClosedCandlesDirection,
+    last5TicksDirection: last5ClosedCandlesDirection,
+    last10TicksDirection: last10ClosedCandlesDirection,
   };
 };
 
@@ -1394,6 +1417,13 @@ function AppCore() {
   const [runSideFilter, setRunSideFilter] = useState("all");
   const [exportBatchId, setExportBatchId] = useState("");
   const [batchExportState, setBatchExportState] = useState({ phase: "IDLE", percent: 0, error: null });
+  const [tickDirectionHealth, setTickDirectionHealth] = useState({
+    tickResearchStreamConnected: false,
+    tickResearchBookConnected: false,
+    tickResearchTradeConnected: false,
+    tickResearchSubscribedSymbolCount: 0,
+    tickResearchLastMessageAgeMs: null,
+  });
   const activePositionSymbolsKey = useMemo(() => [...new Set(
     samples.filter(sample => sample.closed !== true && sample.symbol).map(sample => sample.symbol),
   )].sort().join(","), [samples]);
@@ -1407,7 +1437,9 @@ function AppCore() {
   const [discoveryScannerHealth,  setDiscoveryScannerHealth]  = useState({ enabled: true });
   const [discoveryPerfCounters,   setDiscoveryPerfCounters]   = useState({});
 
-  const universeTickHistoryRef = useRef({});
+  // Broad-scan 24h ticker snapshots. This is deliberately separate from the
+  // genuine bookTicker/aggTrade buffers in tickDirectionCollectorRef.
+  const universeTickerSnapshotHistoryRef = useRef({});
   const discoveryQueueRef      = useRef(createQueue(AES_DISCOVERY_CONFIG));
   const discoveryEpisodeRef    = useRef(createEpisodeState());
   const discoveryFullUniverseRef = useRef([]);
@@ -1432,6 +1464,7 @@ function AppCore() {
   const lifecycleFallbackBusyRef = useRef(false);
   const lifecyclePendingTicksRef = useRef(new Map());
   const lifecycleFlushTimerRef = useRef(null);
+  const tickDirectionCollectorRef = useRef(null);
   const trailOnRef = useRef(trailOn);
 
   useEffect(() => {
@@ -1462,6 +1495,60 @@ function AppCore() {
   useEffect(() => {
     assertLongResearchOnly(LONG_RESEARCH_ONLY_CONFIG);
   }, []);
+
+  // Isolated pre-entry research collector. It owns no React tick state and has
+  // no dependency on the lifecycle stream used for simulated stop/lock safety.
+  useEffect(() => {
+    const collector = createTickDirectionCollector(TICK_DIRECTION_CONFIG);
+    tickDirectionCollectorRef.current = collector;
+    collector.start();
+    const healthTimer = setInterval(() => {
+      setTickDirectionHealth(collector.getHealthSnapshot());
+    }, TICK_DIRECTION_CONFIG.uiRefreshMs);
+    return () => {
+      clearInterval(healthTimer);
+      collector.destroy();
+      if (tickDirectionCollectorRef.current === collector) tickDirectionCollectorRef.current = null;
+    };
+  }, []);
+
+  const tickResearchMembershipKey = useMemo(() => {
+    const ranked = [
+      ...loserTickers.slice(0, TICK_DIRECTION_CONFIG.topSymbolsPerSide).map((ticker, index) => ({
+        symbol: ticker.symbol,
+        priority: 3_000 - index,
+        source: "TOP_LOSER",
+      })),
+      ...gainerTickers.slice(0, TICK_DIRECTION_CONFIG.topSymbolsPerSide).map((ticker, index) => ({
+        symbol: ticker.symbol,
+        priority: 2_000 - index,
+        source: "TOP_GAINER",
+      })),
+      ...activePositionSymbolsKey.split(",").filter(Boolean).map((symbol, index) => ({
+        symbol,
+        priority: 4_000 - index,
+        source: "LIFECYCLE_HANDOVER",
+      })),
+    ];
+    const deduped = new Map();
+    ranked.forEach(member => {
+      const previous = deduped.get(member.symbol);
+      if (!previous || member.priority > previous.priority) deduped.set(member.symbol, member);
+    });
+    return JSON.stringify([...deduped.values()]
+      .sort((left, right) => right.priority - left.priority || left.symbol.localeCompare(right.symbol))
+      .slice(0, TICK_DIRECTION_CONFIG.maxSymbols));
+  }, [loserTickers, gainerTickers, activePositionSymbolsKey]);
+
+  useEffect(() => {
+    const collector = tickDirectionCollectorRef.current;
+    if (!collector) return;
+    try {
+      collector.setMembership(JSON.parse(tickResearchMembershipKey));
+    } catch {
+      collector.setMembership([]);
+    }
+  }, [tickResearchMembershipKey]);
 
   // ── Rate limit watcher ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -1675,7 +1762,7 @@ function AppCore() {
       setGainerTickers(fullUniverse.gainersTop30);
       // Discovery: update rolling tick history and full universe ref
       discoveryFullUniverseRef.current = fullUniverse.allEligible;
-      updateTickHistory(universeTickHistoryRef.current, fullUniverse.allEligible, AES_DISCOVERY_CONFIG, Date.now());
+      updateTickHistory(universeTickerSnapshotHistoryRef.current, fullUniverse.allEligible, AES_DISCOVERY_CONFIG, Date.now());
       setDiscoveryUniverseMeta(fullUniverse.universeMeta);
       // Update active shadow trades with current price/rank (broad scan)
       setAesShadowTrades(prev => {
@@ -2118,8 +2205,15 @@ function AppCore() {
         positionLifecycleLastRestFallbackAt: isRestFallback ? observedAt : (sample.positionLifecycleLastRestFallbackAt ?? null),
         positionLifecycleFallbackReason: isRestFallback ? (tick?.fallbackReason ?? "PER_SYMBOL_STALE") : null,
       };
-      const decision = evaluateLongImmediateExit({
+      const tickOutcomeUpdate = updateTickDirectionOutcomeAudit({
         trade: updated,
+        currentPrice: price,
+        observedAt,
+        source: priceMeta.source,
+      });
+      const audited = { ...updated, ...tickOutcomeUpdate };
+      const decision = evaluateLongImmediateExit({
+        trade: audited,
         currentPrice: price,
         now: observedAt,
         source: priceMeta.source,
@@ -2129,7 +2223,7 @@ function AppCore() {
         trailingDistancePricePct: TRAIL_PCT,
         defaultHoldMs: HOLD_MS,
       });
-      if (!decision.shouldClose) return { ...updated, ...decision.lockBreach };
+      if (!decision.shouldClose) return { ...audited, ...decision.lockBreach };
 
       const finalPnlPct = Number(decision.marginPnlPct.toFixed(4));
       let exitFields = { ...decision.lockBreach };
@@ -2165,7 +2259,11 @@ function AppCore() {
             : decision.reason === CLOSE_REASON.TIMEOUT ? "HOLD_TIMEOUT"
               : "PROFIT_LOCK_FLOOR_BREACH";
       return finalizeClosedSample(
-        { ...updated, ...exitFields },
+        {
+          ...audited,
+          ...exitFields,
+          ...censorUnfilledTickDirectionOutcomes({ ...audited, ...exitFields }),
+        },
         decision.reason,
         finalPnlPct,
         {
@@ -2379,7 +2477,7 @@ function AppCore() {
       const activeSyms   = new Set(aesShadowTrades.filter(t => !t.closed).map(t => t.symbol));
       const queuedSyms   = new Set([...queue.getQueueSnapshot().records.filter(r => r.status === "QUEUED" || r.status === "FETCHING").map(r => r.symbol)]);
       const cachedTelem  = {};
-      for (const sym of Object.keys(universeTickHistoryRef.current)) {
+      for (const sym of Object.keys(universeTickerSnapshotHistoryRef.current)) {
         const ct = queue.getCachedTelemetry(sym, now);
         if (ct) cachedTelem[sym] = ct;
       }
@@ -2387,7 +2485,7 @@ function AppCore() {
       const candidates = selectDeepScanCandidates({
         candidates: outside,
         config: AES_DISCOVERY_CONFIG,
-        tickHistoryStore: universeTickHistoryRef.current,
+        tickHistoryStore: universeTickerSnapshotHistoryRef.current,
         activeSymbols:    activeSyms,
         queuedSymbols:    queuedSyms,
         cachedTelemetry:  cachedTelem,
@@ -2420,7 +2518,7 @@ function AppCore() {
           const candidate = allEligible.find(t => t.symbol === rec.symbol);
           if (!candidate) { queue.markFailed(rec.id, "CANDIDATE_MISSING", Date.now()); return; }
 
-          const tickHistFields = computeTickHistoryFields(rec.symbol, universeTickHistoryRef.current, now);
+          const tickHistFields = computeTickHistoryFields(rec.symbol, universeTickerSnapshotHistoryRef.current, now);
           const candidateEnriched = { ...candidate, ...tickHistFields };
 
           const snapshot = await buildDiscoveryTelemetrySnapshot({
@@ -2571,9 +2669,25 @@ function AppCore() {
 
     const flatMarketContext = flattenMarketContext(entryMarketContext);
     const btcEntryPrice = numberOrNull(flatMarketContext.btcPrice) ?? numberOrNull(entryMarketContext?.btc?.price);
+    const entryTime = Date.now();
+    const tickCollector = tickDirectionCollectorRef.current;
+    const tickStreamHealth = tickCollector?.getHealthSnapshot(entryTime) ?? {};
+    const frozenTickSnapshot = captureTickDirectionSnapshot({
+      symbol: ticker.symbol,
+      entryTime,
+      entryPrice: ep,
+      atrPct: ticker.atrPct ?? klinesMap[ticker.symbol]?.atrPct ?? null,
+      spreadPct: null,
+      bufferStore: tickCollector?.getBufferStore(),
+      config: TICK_DIRECTION_CONFIG,
+      streamHealthy: tickStreamHealth.tickResearchStreamConnected === true,
+    });
+    const tickOutcomeDefaults = buildTickDirectionOutcomeDefaults({
+      entrySpreadPct: frozenTickSnapshot.entryTickSpreadPctObserved,
+    });
 
     const entry = {
-      id:           Date.now(),
+      id:           entryTime,
       symbol:       ticker.symbol,
       leverage:     lev,
       slPct:        SL_PCT,
@@ -2581,15 +2695,15 @@ function AppCore() {
       change24h:    parseFloat(parseFloat(ticker.priceChangePercent).toFixed(2)),
       entryPrice:   ep,
       currentPrice: ep,
-      lastPriceTimestamp: Date.now(),
-      lastPriceUpdateAt: Date.now(),
+      lastPriceTimestamp: entryTime,
+      lastPriceUpdateAt: entryTime,
       lastPriceSource: "ENTRY_TICKER",
       slPrice:      parseFloat((ep * (1 - SL_PCT/100)).toFixed(8)),
       tpPrice:      parseFloat((ep * (1 + TP_PCT/100)).toFixed(8)),
-      entryTime:    Date.now(),
+      entryTime,
       closed:       false, closeReason: null, closedAt: null, finalPnlPct: null,
       mae: 0, mfe: 0, trailPeak: null, trailActive: false,
-      priceHistory: [{ t: Date.now(), p: ep }],
+      priceHistory: [{ t: entryTime, p: ep }],
       funding:       fundingMap[ticker.symbol] ?? null,
       cvdRatio:      null, cvdLabel: null, atrPct: null, volAccel: null,
       spreadPct:     null, oiVal: null,
@@ -2651,6 +2765,8 @@ function AppCore() {
       executionMode:             "LOG_ONLY",
       realOrderPlacementEnabled: false,
       ...makeLongResearchVersionStamp(),
+      ...frozenTickSnapshot,
+      ...tickOutcomeDefaults,
       // Canonical fee snapshot — frozen at entry time
       feeSnapshot:               captureFeeSnapshot(DEFAULT_FEE_CONFIG),
       positionSizingMode:        POSITION_SIZING_MODE.PERCENT_ONLY,
@@ -2779,7 +2895,7 @@ function AppCore() {
         }));
       }));
     });
-  }, [samples, lev, holdMs, fundingMap, loserTickers, gainerTickers, run, sessionMap, fetchBtcMarketContext, recordOiSnapshot]);
+  }, [samples, lev, holdMs, fundingMap, loserTickers, gainerTickers, klinesMap, run, sessionMap, fetchBtcMarketContext, recordOiSnapshot]);
 
   // ── Auto-run engine ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -2965,12 +3081,27 @@ function AppCore() {
     } catch(_) {}
 
     const bucketActiveCount = countActiveByParentBucket(samples, bucket);
+    const tickCollector = tickDirectionCollectorRef.current;
+    const tickStreamHealth = tickCollector?.getHealthSnapshot(nowTs) ?? {};
     const newEntries = toAdd.map((ticker, idx) => {
       const ep    = parseFloat(ticker.lastPrice);
       const h24   = parseFloat(ticker.highPrice), l24 = parseFloat(ticker.lowPrice);
       const rng24 = h24 - l24;
       const rank  = sourceList.findIndex(t => t.symbol === ticker.symbol) + 1;
       const bounceFromLowVal = rng24 > 0 ? parseFloat(((ep - l24) / rng24 * 100).toFixed(1)) : 50;
+      const frozenTickSnapshot = captureTickDirectionSnapshot({
+        symbol: ticker.symbol,
+        entryTime: nowTs,
+        entryPrice: ep,
+        atrPct: ticker.atrPct ?? klinesMap[ticker.symbol]?.atrPct ?? null,
+        spreadPct: null,
+        bufferStore: tickCollector?.getBufferStore(),
+        config: TICK_DIRECTION_CONFIG,
+        streamHealthy: tickStreamHealth.tickResearchStreamConnected === true,
+      });
+      const tickOutcomeDefaults = buildTickDirectionOutcomeDefaults({
+        entrySpreadPct: frozenTickSnapshot.entryTickSpreadPctObserved,
+      });
       return {
         id:           nowTs + idx,
         symbol:       ticker.symbol,
@@ -3056,6 +3187,8 @@ function AppCore() {
         executionMode:             "LOG_ONLY",
         realOrderPlacementEnabled: false,
         ...makeLongResearchVersionStamp(),
+        ...frozenTickSnapshot,
+        ...tickOutcomeDefaults,
       };
     });
 
@@ -5272,7 +5405,7 @@ const canStartLoserSet  = Boolean(loserTickers.length)  && !isAutoRunActive && l
 
         {/* â•â•â• FILTERS â•â•â• */}
         {tab === "filters" && (
-          <FiltersTab samples={samples} />
+          <FiltersTab samples={samples} tickDirectionHealth={tickDirectionHealth} />
         )}
 
 

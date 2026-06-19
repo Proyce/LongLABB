@@ -243,6 +243,20 @@ function sameSet(a, b) {
       console.error(`[PURITY FAIL] ${filter.id} uses legacy/live entry field ${filter.field}`);
       violations++;
     }
+    if (
+      filter.entryPredictive === true &&
+      /^(marketTickForward|marketTickPredictionCorrect|marketTickPredictionResult)/.test(filter.field)
+    ) {
+      console.error(`[PURITY FAIL] ${filter.id} leaks outcome-only tick field ${filter.field} into ENTRY_FINAL`);
+      violations++;
+    }
+    if (
+      /^(marketTickForward|marketTickPredictionCorrect|marketTickPredictionResult)/.test(filter.field) &&
+      filter.timing !== FILTER_TIMING.OUTCOME_ONLY
+    ) {
+      console.error(`[PURITY FAIL] ${filter.id} tick outcome timing=${filter.timing}; expected OUTCOME_ONLY`);
+      violations++;
+    }
   }
 }
 

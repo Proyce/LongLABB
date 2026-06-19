@@ -406,8 +406,8 @@ const GREEN_RED_FILTERS = [
   {
     id: "LAST_3_TICKS_DIRECTION",
     version: LONG_FILTER_REGISTRY_VERSION,
-    label: "Last 3 Ticks Direction",
-    description: "Direction of the last 3 price ticks at entry.",
+    label: "Last 3 Closed 1m Candles (Legacy Tick Alias)",
+    description: "Direction derived from the colors of the last three closed 1-minute candles. This is not a genuine market-tick stream.",
     family: FILTER_FAMILY.GREEN_RED_CONFIRMATION,
     scope: LONG_SCOPE.ALL_LONGS,
     field: "last3TicksDirection",
@@ -2012,6 +2012,91 @@ const FEE_ADJUSTED_OUTCOME_FILTERS = [
   },
 ];
 
+// ─── GENUINE TICK MICROSTRUCTURE (LOG ONLY) ───────────────────────────────
+
+function tickFilter({
+  id,
+  label,
+  field,
+  fieldType = FIELD_TYPE.NUMERIC,
+  timing = FILTER_TIMING.ENTRY_FINAL,
+  entryPredictive = true,
+  enumValues,
+  polarity = "NEUTRAL",
+}) {
+  return {
+    id,
+    version: LONG_FILTER_REGISTRY_VERSION,
+    label,
+    description: timing === FILTER_TIMING.OUTCOME_ONLY
+      ? `${label} from the fixed-horizon tick prediction audit. Outcome-only research field.`
+      : `${label} from the entry-frozen Binance Futures tick observatory.`,
+    family: FILTER_FAMILY.TICK_MICROSTRUCTURE,
+    scope: LONG_SCOPE.ALL_LONGS,
+    field,
+    fieldType,
+    operators: fieldType === FIELD_TYPE.ENUM
+      ? ENUM_OPERATORS
+      : fieldType === FIELD_TYPE.ARRAY
+        ? ARRAY_OPERATORS
+        : NUMERIC_OPERATORS,
+    timing,
+    polarity,
+    status: FILTER_STATUS.RESEARCH,
+    executionSafe: false,
+    entryPredictive,
+    ...(enumValues ? { enumValues } : {}),
+  };
+}
+
+const TICK_MICROSTRUCTURE_FILTERS = [
+  tickFilter({ id: "ENTRY_TICK_DATA_QUALITY", label: "Entry Tick Data Quality", field: "entryTickDataQuality", fieldType: FIELD_TYPE.ENUM, enumValues: ["COMPLETE", "PARTIAL", "INSUFFICIENT", "STALE"] }),
+  tickFilter({ id: "MARKET_TICK_CANONICAL_SOURCE", label: "Market Tick Canonical Source", field: "entryTickCanonicalSource", fieldType: FIELD_TYPE.ENUM, enumValues: ["AGG_TRADE", "BOOK_TICKER_MID", "INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_DIRECTION_VERDICT", label: "Market Tick Direction Verdict", field: "marketTickDirectionVerdict", fieldType: FIELD_TYPE.ENUM, enumValues: ["STRONG_UP", "UP", "NEUTRAL", "DOWN", "STRONG_DOWN", "INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_PRIMARY_PATTERN", label: "Market Tick Primary Pattern", field: "marketTickPrimaryPattern", fieldType: FIELD_TYPE.ENUM, enumValues: ["TICK_UP_EXPANSION", "TICK_UP_PERSISTENT", "TICK_UP_DECELERATION", "TICK_BULLISH_REVERSAL", "TICK_DOWN_EXPANSION", "TICK_DOWN_PERSISTENT", "TICK_DOWN_DECELERATION", "TICK_BEARISH_REVERSAL", "TICK_HIGH_VOL_CHAOS", "TICK_STALLED", "TICK_MIXED", "TICK_INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_DIRECTION_3S", label: "Market Tick Direction 3s", field: "marketTickDirection3s", fieldType: FIELD_TYPE.ENUM, enumValues: ["UP", "DOWN", "FLAT", "MIXED", "INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_DIRECTION_10S", label: "Market Tick Direction 10s", field: "marketTickDirection10s", fieldType: FIELD_TYPE.ENUM, enumValues: ["UP", "DOWN", "FLAT", "MIXED", "INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_BIAS_SCORE", label: "Market Tick Directional Bias", field: "marketTickDirectionalBiasScore" }),
+  tickFilter({ id: "MARKET_TICK_CONFIDENCE_SCORE", label: "Market Tick Direction Confidence", field: "marketTickDirectionConfidenceScore" }),
+  tickFilter({ id: "MARKET_TICK_NET_MOVE_BPS_3S", label: "Market Tick Net Move 3s", field: "marketTickNetMoveBps3s" }),
+  tickFilter({ id: "MARKET_TICK_NET_MOVE_BPS_10S", label: "Market Tick Net Move 10s", field: "marketTickNetMoveBps10s" }),
+  tickFilter({ id: "MARKET_TICK_EFFICIENCY_3S", label: "Market Tick Efficiency 3s", field: "marketTickEfficiency3s" }),
+  tickFilter({ id: "MARKET_TICK_EFFICIENCY_10S", label: "Market Tick Efficiency 10s", field: "marketTickEfficiency10s" }),
+  tickFilter({ id: "MARKET_TICK_VELOCITY_3S", label: "Market Tick Velocity 3s", field: "marketTickVelocityBpsPerSec3s" }),
+  tickFilter({ id: "MARKET_TICK_ACCELERATION_3S", label: "Market Tick Acceleration 3s", field: "marketTickAccelerationBpsPerSec2_3s" }),
+  tickFilter({ id: "MARKET_TICK_CURRENT_UP_STREAK", label: "Market Tick Current Up Streak", field: "marketTickCurrentUpStreak" }),
+  tickFilter({ id: "MARKET_TICK_CURRENT_DOWN_STREAK", label: "Market Tick Current Down Streak", field: "marketTickCurrentDownStreak" }),
+  tickFilter({ id: "MARKET_TICK_REVERSAL_COUNT_10", label: "Market Tick Reversal Count 10", field: "marketTickReversalCount10" }),
+  tickFilter({ id: "MARKET_TICK_AGGRESSOR_FLOW_3S", label: "Market Tick Aggressor Flow 3s", field: "marketTickAggressorFlowLabel3s", fieldType: FIELD_TYPE.ENUM, enumValues: ["STRONG_BUY", "BUY", "NEUTRAL", "SELL", "STRONG_SELL", "INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_AGGRESSOR_VOLUME_IMBALANCE_3S", label: "Aggressor Volume Imbalance 3s", field: "marketTickAggressorVolumeImbalance3s" }),
+  tickFilter({ id: "MARKET_TICK_BOOK_IMBALANCE_3S", label: "Book Imbalance Mean 3s", field: "marketTickBookImbalanceMean3s" }),
+  tickFilter({ id: "MARKET_TICK_TRADE_BOOK_AGREEMENT_3S", label: "Trade / Book Agreement 3s", field: "marketTickTradeBookAgreement3s", fieldType: FIELD_TYPE.ENUM, enumValues: ["AGREE_UP", "AGREE_DOWN", "DISAGREE", "ONE_SOURCE_ONLY", "BOTH_INSUFFICIENT"] }),
+  tickFilter({ id: "MARKET_TICK_EVIDENCE_AGREEMENT_LABEL", label: "Tick / Indicator Evidence Agreement", field: "marketTickEvidenceAgreementLabel", fieldType: FIELD_TYPE.ENUM, enumValues: ["STRONG_AGREEMENT", "AGREEMENT", "MIXED", "CONFLICT"] }),
+  tickFilter({ id: "HIGH_ATR_TICK_CONTEXT_LABEL", label: "High ATR Tick Context", field: "highAtrTickContextLabel", fieldType: FIELD_TYPE.ENUM, enumValues: ["HIGH_ATR_TICK_UP_EXPANSION", "HIGH_ATR_TICK_BULLISH_REVERSAL", "HIGH_ATR_TICK_UP_DECELERATION", "HIGH_ATR_TICK_DOWN_EXPANSION", "HIGH_ATR_TICK_BEARISH_REVERSAL", "HIGH_ATR_TICK_CHAOS", "HIGH_ATR_TICK_STALLED", "ATR_NOT_ACTIVE", "TICK_DIRECTION_UNKNOWN"] }),
+  tickFilter({ id: "HIGH_ATR_DIRECTIONAL_OPPORTUNITY_SCORE", label: "High ATR Directional Opportunity", field: "highAtrDirectionalOpportunityScore" }),
+  tickFilter({ id: "LONG_TICK_RESEARCH_HYPOTHESES_MATCHED", label: "Long Tick Research Hypotheses", field: "longTickResearchHypothesesMatched", fieldType: FIELD_TYPE.ARRAY }),
+  tickFilter({ id: "LONG_TICK_RISK_PATTERNS_MATCHED", label: "Long Tick Risk Patterns", field: "longTickRiskPatternsMatched", fieldType: FIELD_TYPE.ARRAY }),
+];
+
+const TICK_OUTCOME_FILTERS = ["1s", "3s", "5s", "10s", "30s", "60s"].flatMap(horizon => [
+  tickFilter({
+    id: `MARKET_TICK_PREDICTION_RESULT_${horizon.toUpperCase()}`,
+    label: `Market Tick Prediction Result ${horizon}`,
+    field: `marketTickPredictionResult${horizon}`,
+    fieldType: FIELD_TYPE.ENUM,
+    enumValues: ["CORRECT", "WRONG", "NEUTRAL_TARGET", "NEUTRAL_PREDICTION", "CENSORED", "INSUFFICIENT_ENTRY_PREDICTION", "MISSING_HORIZON_PRICE"],
+    timing: FILTER_TIMING.OUTCOME_ONLY,
+    entryPredictive: false,
+  }),
+  tickFilter({
+    id: `MARKET_TICK_FORWARD_MOVE_BPS_${horizon.toUpperCase()}`,
+    label: `Market Tick Forward Move ${horizon}`,
+    field: `marketTickForwardMoveBps${horizon}`,
+    timing: FILTER_TIMING.OUTCOME_ONLY,
+    entryPredictive: false,
+  }),
+]);
+
 // ─── COMBINED REGISTRY ────────────────────────────────────────────────────────
 
 export const LONG_FILTER_REGISTRY = [
@@ -2035,6 +2120,8 @@ export const LONG_FILTER_REGISTRY = [
   ...CANDIDATE_RUNNER_FILTERS,
   ...OUTCOME_FORENSICS_FILTERS,
   ...FEE_ADJUSTED_OUTCOME_FILTERS,
+  ...TICK_MICROSTRUCTURE_FILTERS,
+  ...TICK_OUTCOME_FILTERS,
 ];
 
 // ─── REGISTRY LOOKUP ──────────────────────────────────────────────────────────

@@ -220,6 +220,23 @@ function applyV6Defaults(record) {
   if (m.optionalResearchFeatureCoveragePct == null && m.longFilterCoveragePct != null) {
     m.optionalResearchFeatureCoveragePct = m.longFilterCoveragePct;
   }
+  if (m.last3ClosedCandlesDirection == null) m.last3ClosedCandlesDirection = m.last3TicksDirection ?? null;
+  if (m.last5ClosedCandlesDirection == null) m.last5ClosedCandlesDirection = m.last5TicksDirection ?? null;
+  if (m.last10ClosedCandlesDirection == null) m.last10ClosedCandlesDirection = m.last10TicksDirection ?? null;
+  if (m.closedCandleDirectionTimeframe == null) m.closedCandleDirectionTimeframe = "1m";
+  if (m.legacyTickDirectionSemantic == null) {
+    m.legacyTickDirectionSemantic = "ONE_MINUTE_CANDLE_DIRECTION_ALIAS";
+  }
+  if (m.entryTickDataQuality == null) m.entryTickDataQuality = "INSUFFICIENT";
+  if (m.entryTickCanonicalSource == null) m.entryTickCanonicalSource = "INSUFFICIENT";
+  if (m.marketTickDirectionVerdict == null) m.marketTickDirectionVerdict = "INSUFFICIENT";
+  if (m.marketTickPrimaryPattern == null) m.marketTickPrimaryPattern = "TICK_INSUFFICIENT";
+  if (m.marketTickSupportingLabels == null) m.marketTickSupportingLabels = [];
+  if (m.entryTickMissingReasons == null) m.entryTickMissingReasons = ["LEGACY_ROW_NO_GENUINE_TICK_DATA"];
+  if (m.longTickResearchHypothesesMatched == null) m.longTickResearchHypothesesMatched = [];
+  if (m.longTickRiskPatternsMatched == null) m.longTickRiskPatternsMatched = [];
+  if (m.longTickResearchHypothesesCount == null) m.longTickResearchHypothesesCount = 0;
+  if (m.longTickRiskPatternsCount == null) m.longTickRiskPatternsCount = 0;
   m.entryResearchSchemaVersion = LONG_ENTRY_RESEARCH_SCHEMA_VERSION;
   m.longFilterSnapshotVersion = LONG_FILTER_SNAPSHOT_VERSION;
   m.exportSchemaVersion = LONG_TRADE_EXPORT_VERSION;

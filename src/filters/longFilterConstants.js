@@ -13,7 +13,7 @@ export {
 
 export const LONG_FILTER_SYSTEM_VERSION = "long-filter-v2";
 export const LONG_FILTER_STATE_SCHEMA_VERSION = "long-filter-state-v1";
-export const LONG_FILTER_REGISTRY_VERSION = "long-filter-registry-v2";
+export const LONG_FILTER_REGISTRY_VERSION = "LONG_FILTER_REGISTRY_V7_2026_06";
 
 // ─── SCOPE ────────────────────────────────────────────────────────────────────
 
@@ -145,6 +145,8 @@ export const DEFAULT_PNL_METRIC = PNL_METRIC.FEE_ADJUSTED_NORMALIZED;
 // ─── RECORD SCHEMA CLASS ──────────────────────────────────────────────────────
 
 export const RECORD_SCHEMA_CLASS = Object.freeze({
+  NATIVE_LONG_V9: "NATIVE_LONG_V9",
+  NATIVE_LONG_V8: "NATIVE_LONG_V8",
   NATIVE_LONG_V7: "NATIVE_LONG_V7",
   NATIVE_LONG_V6: "NATIVE_LONG_V6",
   NATIVE_LONG_V5: "NATIVE_LONG_V5",
@@ -186,6 +188,7 @@ export const FILTER_FAMILY = Object.freeze({
   SHADOW_POLICY: "SHADOW_POLICY",
   EXIT_MANAGEMENT: "EXIT_MANAGEMENT",
   OUTCOME_FORENSICS: "OUTCOME_FORENSICS",
+  TICK_MICROSTRUCTURE: "TICK_MICROSTRUCTURE",
 });
 
 // ─── SAMPLE QUALITY BADGES ────────────────────────────────────────────────────
