@@ -2,6 +2,8 @@
 // Detects active sell/red pressure that is dangerous for a LONG entry.
 // Log-only: none of these fields affect candidate creation or execution.
 
+import { canonicalLongMicroLabel, CANONICAL_LONG_MICRO } from '../scoring/longMicroMomentumNormalizer.js';
+
 export const LONG_DANGER_REASON = Object.freeze({
   NO_LONG_MICRO_MOMENTUM:            'NO_LONG_MICRO_MOMENTUM',
   MICRO_RED_PRESSURE:                'MICRO_RED_PRESSURE',
@@ -74,9 +76,10 @@ export function computeLongEntryDangerAuditLogOnly(candidate) {
   const last3Down =
     candidate.last3TicksDirection === 'DOWN';
 
-  const microRedPressure =
-    (candidate.longMicroMomentumLabel ?? candidate.microMomentumLabel) === 'MICRO_RED_IMPULSE' ||
-    (candidate.longMicroMomentumLabel ?? candidate.microMomentumLabel) === 'MICRO_TICKS_DOWN';
+  const microCanonical = canonicalLongMicroLabel(
+    candidate.longMicroMomentumLabel ?? candidate.microMomentumLabel ?? null,
+  );
+  const microRedPressure = microCanonical === CANONICAL_LONG_MICRO.RED_PRESSURE;
 
   // ── CVD signals ───────────────────────────────────────────────────────────
   const cvdBear =
@@ -159,6 +162,14 @@ export function computeLongEntryDangerAuditLogOnly(candidate) {
   if (microRedPressure && !immediateRedImpulse) {
     score += 18;
     reasons.push(LONG_DANGER_REASON.MICRO_RED_PRESSURE);
+    // RED_PRESSURE plus independent confirmation escalates tier (spec §4.3).
+    const independentRedConfirmations = [
+      cvdBear,
+      last3Down,
+      vwapReclaimFailed || vwapLossAfterReclaim,
+      spreadTooWide,
+    ].filter(Boolean).length;
+    if (independentRedConfirmations >= 2) score += 15;
   }
   if (vwapReclaimFailed || vwapLossAfterReclaim) {
     score += 18;

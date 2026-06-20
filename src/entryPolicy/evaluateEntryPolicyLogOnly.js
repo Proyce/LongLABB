@@ -3,6 +3,7 @@ import {
   DIAGNOSTIC_ENTRY_POLICY_DECISION,
   DIAGNOSTIC_ENTRY_POLICY_ACTION,
 } from "./diagnosticEntryPolicyTypes.js";
+import { evaluateCanonicalShadowPolicyV3 } from "./evaluateCanonicalShadowPolicyV3.js";
 
 // Long-native entry policy gate — LOG_ONLY.
 // Rewards long evidence; does NOT penalize bullish CVD or green impulse.
@@ -134,6 +135,9 @@ export function evaluateEntryPolicyLogOnly(candidate) {
 
   const wouldWarn = corePass && reasons.some(r => r.startsWith("WOULD_BLOCK"));
 
+  // ── Canonical V3 policy (Gate + DNA, AES diagnostic only) ────────────────
+  const canonicalV3 = evaluateCanonicalShadowPolicyV3(candidate);
+
   return {
     entryPolicyVersion:    ENTRY_POLICY_LOG_ONLY_CONFIG.version,
     entryPolicyMode:       ENTRY_POLICY_LOG_ONLY_CONFIG.mode,
@@ -155,9 +159,19 @@ export function evaluateEntryPolicyLogOnly(candidate) {
     entryPolicyPrimaryReason: reasons[0] ?? "WOULD_ALLOW",
     entryPolicyReasons:       reasons,
 
+    // AES-based policy preserved as legacy/diagnostic only (spec §9.1)
+    legacyAesEntryPolicyDecision:     decision,
+    legacyAesEntryPolicyReasons:      reasons,
+    legacyAesEntryPolicyRequiredScore: requiredAes,
+    legacyAesEntryPolicyGap:          aesGap,
+    legacyAesEntryPolicyVersion:      ENTRY_POLICY_LOG_ONLY_CONFIG.version,
+
     entryPolicyRequiredAes: requiredAes,
     entryPolicyAesGap:      aesGap,
     entryPolicyQualityTier: qualityInputsComplete ? classifyAesTier(aes) : null,
+
+    // Canonical V3 shadow policy (spec §9)
+    ...canonicalV3,
 
     logOnly: true,
     entryPolicyExecutionApplied:   false,

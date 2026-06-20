@@ -8,6 +8,7 @@ import {
   LONG_BULL_CONFIRMED_VWAP_RECLAIM_V1,
   LONG_GAINER_GREEN_REACCELERATION_V1,
   LONG_LOSER_SCALP_REVERSAL_CONFIRMED_V1,
+  LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1,
 } from "./longComboRegistry.js";
 
 function winningSample(overrides = {}) {
@@ -86,4 +87,67 @@ describe("Long combo registry V2", () => {
     expect(failed.missingConditions).toContain(expectedMissing);
   });
 
+});
+
+describe('LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1 — June 20 research combo', () => {
+  const qualifying = {
+    macdBullishExpansion: true,
+    macdHistogramState1m: 'POSITIVE',
+    entryCvdLabel: 'BULL',
+    atrPct: 0.65,
+    entrySnapshotCompletenessStatus: 'COMPLETE',
+    longHardAntiComboActive: false,
+  };
+
+  it('matches when all conditions pass', () => {
+    const result = LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1(qualifying);
+    expect(result.matched).toBe(true);
+    expect(result.logOnly).toBe(true);
+    expect(result.canAffectExecution).toBe(false);
+    expect(result.executionApplied).toBe(false);
+    expect(result.reasons).toContain('MACD_BULLISH_EXPANSION');
+    expect(result.reasons).toContain('CVD_BULL');
+    expect(result.reasons).toContain('ATR_GE_0_6');
+  });
+
+  it('rejects when MACD is not bullish expansion', () => {
+    const r = LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1({ ...qualifying, macdBullishExpansion: false, macdHistogramState1m: 'NEGATIVE' });
+    expect(r.matched).toBe(false);
+    expect(r.missingConditions).toContain('NEEDS_MACD_BULLISH_EXPANSION');
+  });
+
+  it('rejects when CVD is not BULL', () => {
+    const r = LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1({ ...qualifying, entryCvdLabel: 'BEAR' });
+    expect(r.matched).toBe(false);
+    expect(r.missingConditions).toContain('NEEDS_CVD_BULL');
+  });
+
+  it('rejects when ATR is below 0.6', () => {
+    const r = LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1({ ...qualifying, atrPct: 0.55 });
+    expect(r.matched).toBe(false);
+    expect(r.missingConditions).toContain('NEEDS_ATR_GE_0_6');
+  });
+
+  it('rejects when a hard anti-combo is active', () => {
+    const r = LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1({ ...qualifying, longHardAntiComboActive: true });
+    expect(r.matched).toBe(false);
+    expect(r.missingConditions).toContain('HAS_HARD_ANTI_COMBO');
+  });
+
+  it('is included in evaluateLongCombos positive matched list', () => {
+    const r = evaluateLongCombos({
+      ...winningSample(),
+      atrPct: 0.7,
+      entrySnapshotCompletenessStatus: 'COMPLETE',
+    });
+    expect(r.longCombosPositiveMatched).toContain('LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1');
+  });
+
+  it('carries correct research metadata', () => {
+    expect(LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1.comboStatus).toBe('CROSS_BATCH_CONFIRMED_RESEARCH');
+    expect(LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1.logOnly).toBe(true);
+    expect(LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1.canAffectExecution).toBe(false);
+    expect(LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1.originBatch).toBe('2026-06-20');
+    expect(LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1.originSampleCount).toBe(331);
+  });
 });

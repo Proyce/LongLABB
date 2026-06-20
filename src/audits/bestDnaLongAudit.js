@@ -3,6 +3,8 @@
 // CVD BULL = good; green impulse = good; last3 UP = good; BTC up = good.
 // LOG ONLY — must never affect execution.
 
+import { normalizeLongMicroMomentumLabel, CANONICAL_LONG_MICRO } from '../scoring/longMicroMomentumNormalizer.js';
+
 export const BEST_DNA_LONG_VERSION = "BEST_DNA_LONG_V1";
 
 export const BEST_DNA_LONG_HIGH_MIN   = 70;
@@ -164,7 +166,8 @@ function computeUniversalBestDnaLong(sample, positiveGenes, penaltyGenes) {
   const green  = greenConfirmation(sample);
   const noRed  = noRedImpulse(sample);
   const failed = failedBreakdown(sample);
-  const microLabel = sample?.longMicroMomentumLabel;
+  const microLabelRaw = sample?.longMicroMomentumLabel ?? sample?.microMomentumLabel ?? null;
+  const { canonical: microCanonical } = normalizeLongMicroMomentumLabel(microLabelRaw);
   const spread = finiteNumberOrNull(sample?.spreadPct);
   const volAccel = finiteNumberOrNull(sample?.volAccel);
 
@@ -187,7 +190,7 @@ function computeUniversalBestDnaLong(sample, positiveGenes, penaltyGenes) {
   if (rank != null && rank <= 10) score += addGene(positiveGenes, 6, "ENTRY_RANK_LE_10");
   else if (rank != null && rank <= 15) score += addGene(positiveGenes, 3, "ENTRY_RANK_11_TO_15");
 
-  if (microLabel === "MICRO_MULTI_CONFIRM") {
+  if (microCanonical === CANONICAL_LONG_MICRO.GREEN_MULTI_CONFIRM) {
     score += addGene(positiveGenes, 8, "MICRO_MULTI_CONFIRM");
   }
   if (macdRolloverUp(sample)) score += addGene(positiveGenes, 7, "MACD_BULLISH_ROLLOVER");
@@ -201,7 +204,7 @@ function computeUniversalBestDnaLong(sample, positiveGenes, penaltyGenes) {
   if (sample?.entryCvdLabel === "BEAR") score += addGene(penaltyGenes, -18, "CVD_BEAR");
   if (!green) score += addGene(penaltyGenes, -12, "NO_GREEN_CONFIRMATION");
   if (sample?.longGateWouldPass === false) score += addGene(penaltyGenes, -10, "LONG_GATE_FAIL");
-  if (microLabel === "MICRO_NO_CONFIRMATION" && sample?.longGateWouldPass !== false) {
+  if (microCanonical === CANONICAL_LONG_MICRO.NO_CONFIRMATION && sample?.longGateWouldPass !== false) {
     score += addGene(penaltyGenes, -12, "MICRO_NO_CONFIRMATION");
   }
   if (isBelowVwap(sample) && volAccel > 0 && !green) score += addGene(penaltyGenes, -20, "BELOW_VWAP_SELLER_ACCEL_NO_GREEN");
@@ -289,7 +292,9 @@ function computeLoserBestDnaLong(sample, positiveGenes, penaltyGenes) {
   if (sample?.longSubBucket === "TOP_LOSER_FALLING_KNIFE_DANGER" || bool(sample?.isFallingKnife)) {
     score += addGene(penaltyGenes, -22, "TOP_LOSER_FALLING_KNIFE_DANGER");
   }
-  if (hasLabel(sample?.longGateFailReasons, "NO_MICRO_MOMENTUM") || sample?.longMicroMomentumLabel === "MICRO_NO_CONFIRMATION") {
+  const loserMicroRaw = sample?.longMicroMomentumLabel ?? sample?.microMomentumLabel ?? null;
+  const { canonical: loserMicroCanonical } = normalizeLongMicroMomentumLabel(loserMicroRaw);
+  if (hasLabel(sample?.longGateFailReasons, "NO_MICRO_MOMENTUM") || loserMicroCanonical === CANONICAL_LONG_MICRO.NO_CONFIRMATION) {
     score += addGene(penaltyGenes, -18, "NO_MICRO_MOMENTUM");
   }
   if (sample?.entryPriceVsVwapLabel === "BELOW_VWAP" && !greenConfirmation(sample)) {
@@ -401,6 +406,10 @@ export function evaluateBestDnaLongAudit(sample) {
   const best   = computeBestDnaLongScore(sample);
   const labels = classifyBestDnaLongLabels(sample, { score: best.score });
 
+  // Traceability: expose raw, canonical, and alias used for cross-version comparison.
+  const microLabelRaw = sample?.longMicroMomentumLabel ?? sample?.microMomentumLabel ?? null;
+  const { canonical: microLabelCanonical, aliasUsed: microAliasUsed } = normalizeLongMicroMomentumLabel(microLabelRaw);
+
   return {
     bestDnaLongScoreRaw: best.rawScore,
     bestDnaLongScore:    best.score,
@@ -414,6 +423,11 @@ export function evaluateBestDnaLongAudit(sample) {
     isBestDnaLongHigh:   best.score >= BEST_DNA_LONG_HIGH_MIN,
     isBestDnaLongSniper: best.score >= BEST_DNA_LONG_SNIPER_MIN,
     isBestDnaLongElite:  best.score >= BEST_DNA_LONG_ELITE_MIN,
+
+    // Cross-version micro-label traceability (spec §4.2)
+    bestDnaLongMicroLabelRaw:       microLabelRaw,
+    bestDnaLongMicroLabelCanonical: microLabelCanonical,
+    bestDnaLongMicroAliasUsed:      microAliasUsed,
 
     ...BEST_DNA_LONG_OBSERVER_CONFIG,
   };

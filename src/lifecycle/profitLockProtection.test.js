@@ -5,6 +5,7 @@ import {
   evaluateLongProfitLockBreach,
   PROFIT_LOCK_PROTECTION_STATE,
   PROFIT_LOCK_PROTECTION_VENUE,
+  PROFIT_LOCK_PROTECTION_MODE,
 } from './profitLockProtection.js';
 
 describe('profit lock protection state machine', () => {
@@ -13,7 +14,7 @@ describe('profit lock protection state machine', () => {
     ...makeProfitLockProtectionDefaults(),
   };
 
-  it('does not call a calculated floor protected until the local protection is installed', () => {
+  it('arms LOCAL_WATCH protection and sets mode correctly (V2)', () => {
     const out = synchronizeSimulatedProfitLockProtection(trade, {
       profitLockActive: true,
       profitLockLevelPrice: 101,
@@ -21,9 +22,13 @@ describe('profit lock protection state machine', () => {
       profitLockStage: 'S1',
     }, 1000);
     expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.PROTECTED);
-    expect(out.profitLockProtectionVenue).toBe(PROFIT_LOCK_PROTECTION_VENUE.SIMULATED_LOCAL_STOP);
-    expect(out.profitLockProtectionVerified).toBe(true);
-    expect(out.profitLockProtectionModeHonestLabel).toBe('SIMULATED_LOCAL_STOP');
+    // V2: local watcher is never "verified" (no exchange acknowledgement)
+    expect(out.profitLockProtectionVerified).toBe(false);
+    expect(out.profitLockOrderSubmitted).toBe(false);
+    expect(out.profitLockOrderAcknowledged).toBe(false);
+    expect(out.profitLockOrderResting).toBe(false);
+    expect(out.profitLockProtectionMode).toBe(PROFIT_LOCK_PROTECTION_MODE.LOCAL_WATCH);
+    expect(out.profitLockProtectedFloorPrice).toBe(101);
   });
 
   it('never lowers a LONG floor', () => {
@@ -31,19 +36,19 @@ describe('profit lock protection state machine', () => {
       ...trade,
       profitLockStrategyActive: true,
       profitLockActive: true,
-      profitLockProtectionVerified: true,
+      profitLockProtectionVerified: false,
       profitLockProtectionState: PROFIT_LOCK_PROTECTION_STATE.PROTECTED,
       profitLockProtectedFloorPrice: 102,
       profitLockProtectedFloorMarginPct: 10,
     };
     const out = synchronizeSimulatedProfitLockProtection(armed, {
       profitLockActive: true,
-      profitLockLevelPrice: 101,
+      profitLockLevelPrice: 101,  // lower floor — must be rejected
       profitLockLevelMarginPct: 5,
       profitLockStage: 'STALE_S1',
     }, 2000);
-    expect(out.profitLockProtectionVerified).toBe(true);
-    expect(armed.profitLockProtectedFloorPrice).toBe(102);
+    // Floor must not be lowered
+    expect(out.profitLockProtectedFloorPrice).toBe(102);
     expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.PROTECTED);
   });
 
@@ -54,7 +59,7 @@ describe('profit lock protection state machine', () => {
       profitLockActive: true,
       profitLockProtectedFloorPrice: 101,
       profitLockProtectedFloorMarginPct: 5,
-      profitLockProtectionVerified: true,
+      profitLockProtectionVerified: false,
     };
     const out = synchronizeSimulatedProfitLockProtection(armed, {
       profitLockActive: false,
@@ -82,15 +87,17 @@ describe('profit lock protection state machine', () => {
     expect(breach.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.FLOOR_BREACHED_UNCLOSED);
   });
 
-  it('does not fabricate a precise crossing timestamp for REST polling', () => {
+  it('does not produce a precise crossing estimate for REST polling (first observation)', () => {
     const breach = evaluateLongProfitLockBreach({
       trade: { ...trade, profitLockStrategyActive: true, profitLockProtectedFloorPrice: 101 },
       currentPrice: 100,
       observedAt: 9000,
       source: 'REST_POLL',
     });
-    expect(breach.profitLockFloorCrossedAt).toBeNull();
-    expect(breach.profitLockCrossToLocalDetectionLatencyMs).toBeNull();
-    expect(breach.profitLockCrossTimePrecision).toBe('UNKNOWN_BETWEEN_POLLS');
+    // V2: no previous observation → crossEstimateAt is null; upper bound is set
+    expect(breach.profitLockCrossEstimateAt).toBeNull();
+    expect(breach.profitLockCrossUpperBoundAt).toBe(9000);
+    expect(breach.profitLockDetectionLatencyEstimateMs).toBeNull();
+    expect(breach.profitLockCrossTimePrecision).toBe('FIRST_OBSERVATION_BELOW_FLOOR');
   });
 });
