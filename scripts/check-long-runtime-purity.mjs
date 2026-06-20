@@ -468,6 +468,35 @@ for (const relativePath of TICK_EXECUTION_GUARD_PATHS) {
   }
 }
 
+// ── B-01/B-02/B-05: AES scorer must never mutate candidate or gate objects ───
+// All AES derivations are LOG_ONLY. Any assignment of the form `candidate.x =`
+// or `gate.x =` inside the AES scorer tree is a purity violation.
+{
+  const AES_PATHS = ["src/scoring/longAbsoluteEntryScore"];
+  for (const rel of AES_PATHS) {
+    const abs = join(ROOT, rel);
+    let aesFiles = [];
+    try {
+      aesFiles = statSync(abs).isDirectory() ? getAllJsFiles(abs) : [abs];
+    } catch { continue; }
+    for (const file of aesFiles.filter(p => !p.includes(".test."))) {
+      const content = readFileSync(file, "utf8");
+      if (/\bcandidate\s*\.\s*\w+\s*=(?![>=])/.test(content)) {
+        totalViolations.push({
+          file: relative(ROOT, file).replace(/\\/g, "/"),
+          reason: "AES scorer must not write to candidate objects — all derivations are LOG_ONLY (canAffectExecution: false)",
+        });
+      }
+      if (/\bgate\s*\.\s*\w+\s*=(?![>=])/.test(content)) {
+        totalViolations.push({
+          file: relative(ROOT, file).replace(/\\/g, "/"),
+          reason: "AES scorer must not write to gate objects — all derivations are LOG_ONLY (canAffectExecution: false)",
+        });
+      }
+    }
+  }
+}
+
 // ── Report ─────────────────────────────────────────────────────────────────
 
 if (totalViolations.length === 0) {

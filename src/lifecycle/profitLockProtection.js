@@ -117,7 +117,14 @@ export function synchronizeSimulatedProfitLockProtection(trade, lockUpdate, now 
   };
 }
 
-export function evaluateLongProfitLockBreach({ trade, currentPrice, observedAt = Date.now(), source = 'UNKNOWN' }) {
+export function evaluateLongProfitLockBreach({
+  trade,
+  currentPrice,
+  observedAt = Date.now(),
+  source = 'UNKNOWN',
+  eventTimestampMs = null,   // B-16: timestamp from the WebSocket event (ms epoch)
+  lastPollIntervalMs = null, // B-17: known polling interval for REST paths (ms)
+}) {
   const price = finite(currentPrice);
   const floor = finite(trade?.profitLockProtectedFloorPrice ?? trade?.profitLockLevelPrice);
   const active = trade?.profitLockStrategyActive === true || trade?.profitLockActive === true;
@@ -127,6 +134,35 @@ export function evaluateLongProfitLockBreach({ trade, currentPrice, observedAt =
   const marginPnlPct = price != null && finite(trade?.entryPrice) > 0
     ? ((price - Number(trade.entryPrice)) / Number(trade.entryPrice)) * 100 * Number(trade?.leverage ?? 1)
     : null;
+
+  // B-16: use event timestamp as the actual crossing time for WebSocket events.
+  // For REST paths, keep null — we don't know when the floor was actually crossed.
+  const crossedAt = breached
+    ? (isRealtimeSource
+        ? (eventTimestampMs != null ? Number(eventTimestampMs) : observedAt)
+        : null)
+    : null;
+
+  // B-16: compute real WS latency when event timestamp is available.
+  // B-17: for REST paths, record the poll interval as the minimum detection latency.
+  const detectionLatencyMs = breached
+    ? (isRealtimeSource && eventTimestampMs != null
+        ? Math.max(0, Number(observedAt) - Number(eventTimestampMs))
+        : isRealtimeSource
+          ? null
+          : lastPollIntervalMs != null ? Number(lastPollIntervalMs) : null)
+    : null;
+
+  const crossTimePrecision = breached
+    ? (isRealtimeSource && eventTimestampMs != null
+        ? 'REALTIME_EVENT_TIMESTAMP'
+        : isRealtimeSource
+          ? 'REALTIME_OBSERVATION_APPROX'
+          : lastPollIntervalMs != null
+            ? 'REST_POLL_INTERVAL_ESTIMATE'
+            : 'UNKNOWN_BETWEEN_POLLS')
+    : null;
+
   return Object.freeze({
     breached,
     shouldCloseImmediately: breached,
@@ -136,12 +172,10 @@ export function evaluateLongProfitLockBreach({ trade, currentPrice, observedAt =
     profitLockFloorBreachedWhilePositionOpen: breached,
     profitLockFloorBreachedInLoss: breached && marginPnlPct != null && marginPnlPct < 0,
     profitLockPnlAtFloorBreach: breached ? marginPnlPct : null,
-    // REST polling can only prove the first observation below the floor, not
-    // the true crossing time. Websocket events are treated as realtime observations.
-    profitLockFloorCrossedAt: breached && isRealtimeSource ? observedAt : null,
+    profitLockFloorCrossedAt: crossedAt,
     profitLockLocalTriggerDetectedAt: breached ? observedAt : null,
-    profitLockCrossToLocalDetectionLatencyMs: breached && isRealtimeSource ? 0 : null,
-    profitLockCrossTimePrecision: breached ? (isRealtimeSource ? 'REALTIME_OBSERVATION' : 'UNKNOWN_BETWEEN_POLLS') : null,
+    profitLockCrossToLocalDetectionLatencyMs: detectionLatencyMs,
+    profitLockCrossTimePrecision: crossTimePrecision,
     profitLockTriggerSource: source,
     profitLockCloseBlockedByPositivePnlGuard: false,
     profitLockProtectionVersion: PROFIT_LOCK_PROTECTION_VERSION,

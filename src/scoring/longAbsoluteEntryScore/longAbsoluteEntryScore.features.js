@@ -121,9 +121,11 @@ export function normalizeLongAesFeatures(s) {
     greenImpulseDetected:  booleanOrNull(s.greenImpulseDetected),
     hasGreenConfirmation:  booleanOrNull(
       s.hasGreenConfirmation ??
-      (s.immediateGreenImpulse === true || s.greenImpulseDetected === true ||
-       s.last3TicksDirection === "UP" ? true :
-       s.immediateGreenImpulse === false && s.greenImpulseDetected === false ? false : null)
+      (s.immediateGreenImpulse === true || s.greenImpulseDetected === true
+        ? true                                               // B-05: only real impulse fields
+        : s.immediateGreenImpulse === false && s.greenImpulseDetected === false
+          ? false
+          : null)
     ),
 
     last3TicksDirection: stringOrUnknown(s.last3TicksDirection ?? s.entryTiming?.last3TicksDirection),
@@ -155,7 +157,7 @@ export function normalizeLongAesFeatures(s) {
     topGainerContinuationQualityScore: finiteOrNull(s.topGainerContinuationQualityScore),
     hasGainerContinuationConfirmation: booleanOrNull(s.hasGainerContinuationConfirmation),
     topGainerWouldPassContinuationAudit: booleanOrNull(s.topGainerWouldPassContinuationAudit),
-    hasGainerGreenConfirmation:  booleanOrNull(s.hasGainerGreenConfirmation ?? s.greenImpulseDetected),
+    hasGainerGreenConfirmation:  booleanOrNull(s.hasGainerGreenConfirmation ?? null),  // B-06: no fallback to generic green fields
     hasGainerHigherLow:          booleanOrNull(s.hasGainerHigherLow ?? s.higherLow1m),
     hasGainerBlowoffDanger:      booleanOrNull(s.hasGainerBlowoffDanger),
     topGainerBlowoffRiskLabel:   s.topGainerBlowoffRiskLabel ?? null,

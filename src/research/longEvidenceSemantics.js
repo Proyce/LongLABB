@@ -142,7 +142,11 @@ export function deriveLongEvidenceSummary(sample = {}) {
   }))];
   const clean = positives.length >= 1 && antis.length === 0 && highestAntiSeverity !== LONG_ANTI_SEVERITY.HARD;
   const stacked = positives.length >= 2 && antis.length === 0 && positiveFamilies.length >= 2;
-  const eliteScore = (finite(sample.bestDnaLongScore) ?? -Infinity) >= 90 || (finite(sample.longPostFee10EntryScore) ?? -Infinity) >= 90 || (finite(sample.longGateScore) ?? -Infinity) >= 90;
+  // B-13: prefer V2 shadow score over V1 when available
+  const eliteScore =
+    (finite(sample.bestDnaLongScoreV2Shadow ?? sample.bestDnaLongScore) ?? -Infinity) >= 90 ||
+    (finite(sample.longPostFee10EntryScore) ?? -Infinity) >= 90 ||
+    (finite(sample.longGateScore) ?? -Infinity) >= 90;
   const microUp = sample.longMicroUpConfirmation === true || sample.last3TicksDirection === 'UP' || sample.immediateGreenImpulse === true;
   return Object.freeze({
     rawPositiveComboCount: positives.length,
@@ -169,7 +173,8 @@ export function deriveLongEvidenceSummary(sample = {}) {
 
 export function deriveLongQualityBuckets(sample = {}) {
   const gate = finite(sample.longGateScore);
-  const dna = finite(sample.bestDnaLongScore);
+  // B-13: prefer V2 shadow over V1 when available; V1 is fallback only.
+  const dna = finite(sample.bestDnaLongScoreV2Shadow ?? sample.bestDnaLongScore);
   const pf10 = finite(sample.longPostFee10EntryScore);
   const runner = finite(sample.longCandidateRunnerScoreAtEntry);
   const scores = [gate, dna, pf10, runner].filter(Number.isFinite);
@@ -181,7 +186,11 @@ export function deriveLongQualityBuckets(sample = {}) {
     // Consensus aggregation: a single inflated scorer must not promote the tier.
     // A high band requires either two scorers in-band OR the median in-band.
     const sorted = [...scores].sort((a, b) => a - b);
-    const median = sorted[Math.floor((sorted.length - 1) / 2)];
+    // B-12: correct median for even-length arrays (old formula always picked lower middle)
+    const mid = sorted.length / 2;
+    const median = sorted.length % 2 === 1
+      ? sorted[Math.floor(mid)]
+      : (sorted[Math.floor(mid) - 1] + sorted[Math.floor(mid)]) / 2;
     const inBand90 = scores.filter(v => v >= 90).length;
     const inBand80 = scores.filter(v => v >= 80).length;
     qualityTier =

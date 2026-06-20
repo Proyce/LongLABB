@@ -110,19 +110,25 @@ function scoreMovementMaturity(f, w, pos, neg, warnings) {
     }
   }
 
-  if (f.microMomentumLabel === "MICRO_MULTI_CONFIRM") {
-    addContribution(pos, "MICRO_MULTI_CONFIRM", "MOVEMENT_MATURITY", w.microMultiConfirm);
+  if (f.microMomentumLabel === "MICRO_GREEN_MULTI_CONFIRM") {        // B-01: was "MICRO_MULTI_CONFIRM"
+    addContribution(pos, "MICRO_GREEN_MULTI_CONFIRM", "MOVEMENT_MATURITY", w.microMultiConfirm);
     score += w.microMultiConfirm;
   } else if (f.microMomentumLabel === "MICRO_GREEN_IMPULSE") {
     addContribution(pos, "MICRO_GREEN_IMPULSE", "MOVEMENT_MATURITY", w.microGreenImpulse);
     score += w.microGreenImpulse;
+  } else if (f.microMomentumLabel === "MICRO_TICKS_UP") {            // B-03
+    addContribution(pos, "MICRO_TICKS_UP_ONLY", "MOVEMENT_MATURITY", w.microTicksUpOnly);
+    score += w.microTicksUpOnly;
+  } else if (f.microMomentumLabel === "MICRO_RSI_ROLLOVER_UP") {     // B-03
+    addContribution(pos, "MICRO_RSI_ROLLOVER_UP", "MOVEMENT_MATURITY", w.microRsiRolloverUp);
+    score += w.microRsiRolloverUp;
   }
 
-  if (f.microMomentumLabel === "MICRO_TICKS_DOWN" && f.side === "LOSER") {
+  if (f.microMomentumLabel === "MICRO_RED_PRESSURE" && f.side === "LOSER") {  // B-02: was "MICRO_TICKS_DOWN"
     const hasConfirmation = f.hasGreenConfirmation === true || f.hasRsiRolloverUp === true;
     if (!hasConfirmation) {
-      addContribution(neg, "LOSER_MICRO_TICKS_DOWN_UNCONFIRMED", "MOVEMENT_MATURITY", w.loserMicroTicksUpPenalty);
-      score += w.loserMicroTicksUpPenalty;
+      addContribution(neg, "LOSER_MICRO_RED_PRESSURE_UNCONFIRMED", "MOVEMENT_MATURITY", w.loserMicroRedPressurePenalty);
+      score += w.loserMicroRedPressurePenalty;
     }
   }
 
@@ -201,6 +207,9 @@ function scoreFlowMomentum(f, w, pos, neg) {
     if (f.side === "LOSER" && !activeGreen) {
       addContribution(neg, "CVD_BEAR_LOSER_NO_GREEN", "FLOW_MOMENTUM", w.cvdBearLoserNoGreen);
       score += w.cvdBearLoserNoGreen;
+    } else if (f.side === "GAINER" && !activeGreen) {  // B-04
+      addContribution(neg, "CVD_BEAR_GAINER_NO_GREEN", "FLOW_MOMENTUM", w.cvdBearGainerNoGreen);
+      score += w.cvdBearGainerNoGreen;
     }
   }
 
@@ -299,6 +308,10 @@ function scoreGainerLongSide(f, gw, pos, neg) {
   if (cq >= 120) {
     addContribution(pos, "CONTINUATION_QUALITY_120", "SIDE_SPECIFIC_GAINER", gw.continuationQuality120);
     score += gw.continuationQuality120;
+  }
+  if (cq >= 140) {  // B-07: extreme extension risk damper
+    addContribution(neg, "GAINER_OVER_EXTENSION", "SIDE_SPECIFIC_GAINER", gw.overExtensionPenalty);
+    score += gw.overExtensionPenalty;
   }
   if (f.hasGainerContinuationConfirmation === true) {
     addContribution(pos, "CONTINUATION_CONFIRMATION", "SIDE_SPECIFIC_GAINER", gw.continuationConfirmation);
@@ -672,9 +685,9 @@ function _computeLongV1Inner(s, cfg, componentOptions = {}) {
     longAesEligibility,
     longAesConfidence,
     longAesConfidenceLabel,
-    longAesConfidenceIsInformative: true,
+    longAesConfidenceIsInformative: longAesConfidence > 0 && featureCoveragePct >= 80,  // B-08
     longAesConfidenceDistinctValueCountAtRun: null,
-    longAesConfidenceCalibrationStatus: "CALIBRATED",
+    longAesConfidenceCalibrationStatus: "UNCALIBRATED_RULE_MODEL",  // B-09: was "CALIBRATED"
     longAesFeatureCoveragePct: featureCoveragePct,
     longAesMissingFields: allMissingFields,
 

@@ -295,6 +295,13 @@ export const LONG_RED_CVD_BEAR_ANTI_V1 = makeCombo(
   }),
 );
 
+// B-15: LONG_GAINER_GREEN_REACCELERATION_V1 retired — mean -0.267, WR 39.7% (n=116 June 20 batch).
+// Performs below baseline. After B-14 (bucket overwrite fix) this label will be purer and likely
+// worse. Candidate for anti-combo after 3 more batches confirm. Do not re-promote without IC > 0.
+export const RETIRED_LONG_COMBOS_V1 = [
+  LONG_GAINER_GREEN_REACCELERATION_V1,
+];
+
 export const LONG_POSITIVE_COMBOS = [
   LONG_UNIVERSAL_CORE_V1,
   FIRST_GREEN_DUMP_EXHAUSTION_LONG_V1,
@@ -307,9 +314,11 @@ export const LONG_POSITIVE_COMBOS = [
   LONG_PREMIUM_PF10_RUNNER_V1,
   LONG_GATE_STRONG_MICRO_UP_CLEAN_V1,
   LONG_BULL_CONFIRMED_VWAP_RECLAIM_V1,
-  LONG_GAINER_GREEN_REACCELERATION_V1,
   LONG_LOSER_SCALP_REVERSAL_CONFIRMED_V1,
 ];
+
+// Alias used by purity checks and new tests
+export const REGISTERED_LONG_COMBOS = LONG_POSITIVE_COMBOS;
 
 export const LONG_ANTI_COMBOS = [
   LONG_FALLING_KNIFE_ANTI_V1,
