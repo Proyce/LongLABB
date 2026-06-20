@@ -1,4 +1,5 @@
 import { LONG_RUNNER_FEATURE } from './longCandidateRunner.constants.js';
+import { normalizeLongMicroMomentumLabel, CANONICAL_LONG_MICRO } from '../longMicroMomentumNormalizer.js';
 
 // Required inputs that must be present for a meaningful score.
 const REQUIRED_INPUT_KEYS = [
@@ -36,12 +37,13 @@ export function extractLongRunnerFeatures(candidate) {
   const missingFeatures    = REQUIRED_INPUT_KEYS.filter((_, i) => !requiredKnownFlags[i]);
 
   // ── Derive feature flags — null means unknown, not false ──────────────────
-  const microLabel         = microLabelRaw ?? '';
-  const microMultiConfirm  = microLabelRaw != null
-    ? (microLabel === 'LONG_MICRO_GREEN_MULTI_CONFIRM' || microLabel === 'MICRO_MULTI_CONFIRM')
+  // Use shared normalizer so all historical alias mapping lives in one place.
+  const { canonical: microCanonical } = normalizeLongMicroMomentumLabel(microLabelRaw);
+  const microMultiConfirm = microLabelRaw != null
+    ? microCanonical === CANONICAL_LONG_MICRO.GREEN_MULTI_CONFIRM
     : null;
-  const microRed           = microLabelRaw != null
-    ? (microLabel === 'MICRO_RED_IMPULSE' || microLabel === 'LONG_MICRO_RED_PRESSURE')
+  const microRed = microLabelRaw != null
+    ? microCanonical === CANONICAL_LONG_MICRO.RED_PRESSURE
     : null;
 
   const immediateGreen = c.immediateGreenImpulse === true;

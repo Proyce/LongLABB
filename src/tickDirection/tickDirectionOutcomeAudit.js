@@ -93,3 +93,35 @@ export function censorUnfilledTickDirectionOutcomes(trade, config = TICK_DIRECTI
   update.marketTickOutcomeAuditVersion = TICK_DIRECTION_OUTCOME_AUDIT_VERSION;
   return update;
 }
+
+// ── Direction-adjusted outcome fields (spec §8.5) ─────────────────────────────
+// For a DOWN prediction, direction-adjusted move = negative of raw forward move.
+// This prevents a correct DOWN call from appearing negative merely because the
+// raw price fell.  These fields are post-entry outcome telemetry ONLY.
+
+function isUpVerdict(verdict) {
+  return verdict === 'STRONG_UP' || verdict === 'UP';
+}
+function isDownVerdict(verdict) {
+  return verdict === 'STRONG_DOWN' || verdict === 'DOWN';
+}
+
+export function buildDirectionAdjustedOutcomeFields(trade, config = TICK_DIRECTION_CONFIG) {
+  const verdict = trade?.marketTickDirectionVerdict;
+  const update = {};
+  for (const horizonMs of config.outcomeHorizonsMs) {
+    const key = suffix(horizonMs);
+    const moveBps = finite(trade?.[`marketTickForwardMoveBps${key}`]);
+    const censored = trade?.[`marketTickPredictionResult${key}`] === TICK_OUTCOME_RESULT.CENSORED;
+    if (moveBps == null) continue;
+    const dirAdj = isDownVerdict(verdict) ? -moveBps
+      : isUpVerdict(verdict) ? moveBps
+      : moveBps;
+    update[`marketTickDirectionCorrect${key}`]         = isUpVerdict(verdict) ? dirAdj > 0
+      : isDownVerdict(verdict) ? dirAdj > 0
+      : null;
+    update[`marketTickDirectionAdjustedMoveBps${key}`] = Number(dirAdj.toFixed(6));
+    update[`marketTickDirectionHorizonCensored${key}`] = censored;
+  }
+  return update;
+}

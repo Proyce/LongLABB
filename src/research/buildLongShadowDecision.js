@@ -97,12 +97,15 @@ export function buildLongShadowDecision({
   }
 
   // ── 2. Required-component coverage guard ─────────────────────────────────────
-  const requiredComponents = {
-    dataQuality: dataQuality != null && dataQuality.longFilterDataQuality != null,
-    longGate:    longGate != null && longGate.longGateEligibility != null,
-    longAes:     longAes != null && (longAes.longAesEligibility != null || longAes.absoluteEntryEligibility != null),
-    longAudit:   longAudit != null && longAudit.longAuditDangerTier != null,
-  };
+  // AES is DIAGNOSTIC_ONLY — it is no longer a required component (spec §9.1).
+  // Required: Gate, DNA V2 (or V1 fallback), danger audit, data quality.
+  const hasGate  = longGate  != null && longGate.longGateEligibility  != null;
+  const hasDna   = longAes   != null && (longAes.longAesEligibility != null || longAes.absoluteEntryEligibility != null ||
+                   longAes.bestDnaLongV2Score != null || longAes.bestDnaLongScore != null);
+  const hasAudit = longAudit != null && longAudit.longAuditDangerTier != null;
+  const hasData  = dataQuality != null && dataQuality.longFilterDataQuality != null;
+
+  const requiredComponents = { dataQuality: hasData, longGate: hasGate, dnaQuality: hasDna, longAudit: hasAudit };
   const knownRequiredCount = Object.values(requiredComponents).filter(Boolean).length;
   const requiredCoveragePct = (knownRequiredCount / Object.keys(requiredComponents).length) * 100;
 
@@ -274,6 +277,9 @@ export function buildLongShadowDecision({
     bucketAuditVerdict === 'FAIL' ||
     aesVerdict === 'LOW';
 
+  // DNA V2 is now the canonical quality score (spec §9.1).
+  const dnaV2Score = longAes?.bestDnaLongV2Score ?? longAes?.bestDnaLongScore ?? 0;
+
   if (hasHardBlock) {
     finalVerdict = SHADOW_VERDICT.WOULD_HARD_BLOCK;
   } else if (hasBlock) {
@@ -281,7 +287,7 @@ export function buildLongShadowDecision({
   } else if (hasReduce) {
     finalVerdict = SHADOW_VERDICT.WOULD_REDUCE;
   } else if (
-    aesScore >= 80 &&
+    dnaV2Score >= 80 &&
     gateScore >= 80 &&
     positiveReasons.length >= 3 &&
     blockReasons.length === 0
@@ -299,7 +305,7 @@ export function buildLongShadowDecision({
 
   return {
     baseGateVerdict,
-    aesVerdict,
+    aesVerdict,  // Retained as diagnostic alias for AES
     auditVerdict,
     bucketAuditVerdict,
     marketContextVerdict,
@@ -315,6 +321,14 @@ export function buildLongShadowDecision({
     cautionReasons,
     blockReasons,
     unknownReasons,
+
+    // Coverage reporting (spec §9.3)
+    shadowDecisionRequiredCoveragePct: requiredCoveragePct,
+    shadowDecisionOptionalCoveragePct: null,
+    shadowDecisionMissingRequiredComponents: Object.entries(
+      { dataQuality: hasData, longGate: hasGate, dnaQuality: hasDna, longAudit: hasAudit }
+    ).filter(([, v]) => !v).map(([k]) => k),
+    shadowDecisionQualityModelUsed: 'GATE_DNA_V2_CANONICAL',
 
     logOnly:            true,
     canAffectExecution: false,

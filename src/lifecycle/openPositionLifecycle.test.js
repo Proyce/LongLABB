@@ -20,7 +20,7 @@ describe('independent LONG position lifecycle', () => {
     expect(out.lockBreach.profitLockFloorBreachedInLoss).toBe(true);
   });
 
-  it('times out independently of scanner state', () => {
+  it('times out independently of scanner state (legacy holdMs)', () => {
     const out = evaluateLongImmediateExit({
       trade: { id: 'x', closed: false, entryPrice: 100, leverage: 5, entryTime: 0, holdMs: 500 },
       currentPrice: 100.1,
@@ -29,6 +29,27 @@ describe('independent LONG position lifecycle', () => {
     });
     expect(out.shouldClose).toBe(true);
     expect(out.reason).toBe(CLOSE_REASON.TIMEOUT);
+  });
+
+  it('prefers configuredMaxHoldMs over legacy holdMs for timeout', () => {
+    const out = evaluateLongImmediateExit({
+      trade: { id: 'x', closed: false, entryPrice: 100, leverage: 5, entryTime: 0, holdMs: 9999, configuredMaxHoldMs: 500 },
+      currentPrice: 100.1,
+      now: 501,
+      source: 'BOOK_TICKER',
+    });
+    expect(out.shouldClose).toBe(true);
+    expect(out.reason).toBe(CLOSE_REASON.TIMEOUT);
+  });
+
+  it('does not time out before configuredMaxHoldMs expires', () => {
+    const out = evaluateLongImmediateExit({
+      trade: { id: 'x', closed: false, entryPrice: 100, leverage: 5, entryTime: 0, configuredMaxHoldMs: 5000 },
+      currentPrice: 100.1,
+      now: 4999,
+      source: 'BOOK_TICKER',
+    });
+    expect(out.shouldClose).toBe(false);
   });
 });
 

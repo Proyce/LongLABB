@@ -18,6 +18,13 @@ import {
   TICK_DIRECTION_STREAM_SCHEMA_VERSION,
   TICK_DIRECTION_VERSION,
 } from '../tickDirection/tickDirection.config.js';
+import {
+  deduplicateByCanonicalId,
+  classifyResearchExclusion,
+  CANONICAL_RESEARCH_EXCLUSION,
+  CANONICAL_EXPORT_SCHEMA_VERSION,
+  CANONICAL_SNAPSHOT_PRECEDENCE_VERSION,
+} from './canonicalTradeIdentity.js';
 
 export const LONG_BATCH_EXPORT_VERSION = 'LONG_BATCH_ANALYSIS_V4_TICK_DIRECTION_V1';
 export const LONG_BATCH_RUN_LIMIT = 20;
@@ -44,28 +51,17 @@ function normalizeRun(value) {
   return n == null ? null : n;
 }
 
-function stableTradeId(trade, index = 0) {
+function stableTradeId(trade) {
   return String(
-    trade?.tradeId ?? trade?.id ?? `${trade?.symbol ?? 'UNKNOWN'}:${trade?.entryTime ?? index}`,
+    trade?.canonicalTradeId ?? trade?.tradeId ?? trade?.id
+      ?? `${trade?.symbol ?? 'UNKNOWN'}:${trade?.entryTime ?? 0}`,
   );
 }
 
-function compareTradeFreshness(left, right) {
-  const leftFinal = left?.closed === true ? 1 : 0;
-  const rightFinal = right?.closed === true ? 1 : 0;
-  if (leftFinal !== rightFinal) return leftFinal - rightFinal;
-  return Number(left?.closedAt ?? left?.lastPriceUpdateAt ?? left?.entryTime ?? 0)
-    - Number(right?.closedAt ?? right?.lastPriceUpdateAt ?? right?.entryTime ?? 0);
-}
-
 export function dedupeLongTradesForAnalysis(trades) {
-  const byId = new Map();
-  (Array.isArray(trades) ? trades : []).forEach((trade, index) => {
-    const id = stableTradeId(trade, index);
-    const current = byId.get(id);
-    if (!current || compareTradeFreshness(current, trade) <= 0) byId.set(id, trade);
-  });
-  return [...byId.values()];
+  // Use versioned canonical deduplication — order-independent.
+  const { canonical } = deduplicateByCanonicalId(Array.isArray(trades) ? trades : []);
+  return canonical;
 }
 
 function sortRuns(runs) {
@@ -199,6 +195,11 @@ const RUN_SUMMARY_HEADERS = Object.freeze([
   'gainers', 'losers', 'uniqueSymbols', 'totalFeeAdjustedNormPnlPct', 'avgFeeAdjustedNormPnlPct',
   'feeAdjustedWinRatePct', 'bestFeeAdjustedNormPnlPct', 'worstFeeAdjustedNormPnlPct',
   'stopLossCount', 'profitLockCount', 'trailingExitCount', 'timeoutCount', 'runStopCount',
+  // Run health metrics (spec Phase 7)
+  'gateRejectCount', 'gatePassCount', 'gateRejectRate',
+  'profitLockFloorPreservedCount', 'profitLockFloorMissedCount', 'profitLockFloorMissRate',
+  'tickCompleteCount', 'tickTotalWithQuality', 'tickCompleteRate',
+  'runHealthLabel',
   'startedAt', 'endedAt',
 ]);
 const EXIT_SUMMARY_HEADERS = Object.freeze([
@@ -231,6 +232,14 @@ function isResearchEligible(trade) {
   return trade?.finalizationDataQuality !== 'INVALID';
 }
 
+function classifyRunHealth({ gateRejectRate, profitLockFloorMissRate, tickCompleteRate }) {
+  const labels = [];
+  if (gateRejectRate != null && gateRejectRate > 0.6) labels.push('REJECT_FLOOD');
+  if (profitLockFloorMissRate != null && profitLockFloorMissRate > 0.4) labels.push('PROFIT_LOCK_ENFORCEMENT_DEGRADED');
+  if (tickCompleteRate != null && tickCompleteRate < 0.5) labels.push('TICK_DATA_SPARSE');
+  return labels.length ? labels.join('|') : 'NOMINAL';
+}
+
 function summarizeRun(run, trades) {
   const closed = trades.filter(trade => trade?.closed === true);
   const eligible = closed.filter(isResearchEligible);
@@ -245,6 +254,29 @@ function summarizeRun(run, trades) {
     return result;
   }, {});
   const symbols = new Set(trades.map(trade => trade?.symbol).filter(Boolean));
+
+  // ── Run health metrics (spec Phase 7) ──────────────────────────────────────
+  const gateRejectCount = trades.filter(t => t?.longGateWouldPass === false || t?.longGateEligibility === 'RESEARCH_REJECT').length;
+  const gatePassCount   = trades.filter(t => t?.longGateWouldPass === true  || t?.longGateEligibility === 'ELIGIBLE').length;
+  const gateTotalWithVerdict = gateRejectCount + gatePassCount;
+  const gateRejectRate = gateTotalWithVerdict > 0 ? Number((gateRejectCount / gateTotalWithVerdict).toFixed(4)) : null;
+
+  const profitLockExits = closed.filter(t => closeReasonOf(t) === 'PROFIT_LOCK');
+  const profitLockFloorPreservedCount = profitLockExits.filter(t => t?.profitLockFloorOutcome === 'PRESERVED').length;
+  const profitLockFloorMissedCount    = profitLockExits.filter(t => t?.profitLockFloorOutcome === 'MISSED').length;
+  const profitLockFloorTotal = profitLockFloorPreservedCount + profitLockFloorMissedCount;
+  const profitLockFloorMissRate = profitLockFloorTotal > 0
+    ? Number((profitLockFloorMissedCount / profitLockFloorTotal).toFixed(4))
+    : null;
+
+  const tradesWithTickQuality = trades.filter(t => t?.tickSourceQuality != null);
+  const tickCompleteCount = tradesWithTickQuality.filter(t => t?.tickSourceQuality === 'COMPLETE').length;
+  const tickTotalWithQuality = tradesWithTickQuality.length;
+  const tickCompleteRate = tickTotalWithQuality > 0
+    ? Number((tickCompleteCount / tickTotalWithQuality).toFixed(4))
+    : null;
+
+  const runHealthLabel = classifyRunHealth({ gateRejectRate, profitLockFloorMissRate, tickCompleteRate });
 
   return {
     run,
@@ -266,6 +298,16 @@ function summarizeRun(run, trades) {
     trailingExitCount: reasons.TRAILING_EXIT ?? reasons.TRAIL ?? 0,
     timeoutCount: reasons.TIMEOUT ?? 0,
     runStopCount: (reasons.RUN_STOP ?? 0) + (reasons.APP_SHUTDOWN ?? 0),
+    gateRejectCount,
+    gatePassCount,
+    gateRejectRate,
+    profitLockFloorPreservedCount,
+    profitLockFloorMissedCount,
+    profitLockFloorMissRate,
+    tickCompleteCount,
+    tickTotalWithQuality,
+    tickCompleteRate,
+    runHealthLabel,
     startedAt: startTimes.length ? new Date(Math.min(...startTimes)).toISOString() : null,
     endedAt: endTimes.length ? new Date(Math.max(...endTimes)).toISOString() : null,
   };
@@ -433,6 +475,20 @@ function summarizeObservedVersions(trades) {
   return result;
 }
 
+function computeCohortFingerprint(canonicalValidTrades, precedenceVersion, exportSchemaVersion) {
+  const sortedIds = [...canonicalValidTrades]
+    .map(t => String(t?.canonicalTradeId ?? t?.tradeId ?? t?.id ?? ''))
+    .sort();
+  const input = [sortedIds.join(','), precedenceVersion, exportSchemaVersion].join('|');
+  // FNV-1a 32-bit deterministic hash expressed as hex
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `CFP-${(h >>> 0).toString(16).padStart(8, '0')}`;
+}
+
 function slugify(value) {
   return String(value ?? 'batch')
     .toLowerCase()
@@ -450,6 +506,36 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
     ? selectedRaw
     : selectedRaw.filter(trade => sideOf(trade).toLowerCase() === sideFilter);
   const prepared = prepareLongTradesForExport(sideSelected);
+
+  // Canonical deduplication with audit trail
+  const { canonical: canonicalAll, duplicateAudit, totalSuperseded } = deduplicateByCanonicalId(prepared);
+
+  // Classify each canonical trade
+  const canonicalClosed     = canonicalAll.filter(t => t.closed === true);
+  const canonicalActive     = canonicalAll.filter(t => t.closed !== true);
+  const canonicalValid      = canonicalClosed.filter(t => classifyResearchExclusion(t) === null);
+  const canonicalExcluded   = canonicalClosed.filter(t => classifyResearchExclusion(t) !== null);
+
+  // Annotate exclusion reason on excluded trades
+  const canonicalExcludedAnnotated = canonicalExcluded.map(t => ({
+    ...t,
+    canonicalResearchExclusionReason: classifyResearchExclusion(t),
+  }));
+
+  // Count by exclusion reason
+  const countsByExclusion = {};
+  for (const t of canonicalExcludedAnnotated) {
+    const r = t.canonicalResearchExclusionReason ?? CANONICAL_RESEARCH_EXCLUSION.UNKNOWN;
+    countsByExclusion[r] = (countsByExclusion[r] ?? 0) + 1;
+  }
+
+  // Cohort fingerprint: SHA-like hash over sorted IDs + precedence version
+  const cohortFingerprint = computeCohortFingerprint(
+    canonicalValid,
+    CANONICAL_SNAPSHOT_PRECEDENCE_VERSION,
+    CANONICAL_EXPORT_SCHEMA_VERSION,
+  );
+
   const researchClean = prepared.filter(trade => trade?.closed === true && isResearchEligible(trade));
   const excluded = prepared.filter(trade => trade?.closed === true && !isResearchEligible(trade));
   const active = prepared.filter(trade => trade?.closed !== true);
@@ -499,10 +585,13 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
     runSummaries,
     qualitySummary,
     observedVersions,
+    batchRunHealthLabels: [...new Set(runSummaries.map(r => r.runHealthLabel).filter(Boolean))],
   };
 
   const manifest = {
     format: LONG_BATCH_EXPORT_VERSION,
+    canonicalExportSchemaVersion:    CANONICAL_EXPORT_SCHEMA_VERSION,
+    canonicalSnapshotPrecedenceVersion: CANONICAL_SNAPSHOT_PRECEDENCE_VERSION,
     purpose: 'Analysis-first LongLAB batch export',
     generatedAt,
     selectedBatch: descriptor,
@@ -512,7 +601,16 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
       trades: prepared.length,
       forensicEvents: forensicEvents.length,
       files: 0,
+      // Canonical cohort counts (spec §11.4)
+      sourceRowCount:          prepared.length,
+      uniqueCanonicalTradeCount: canonicalAll.length,
+      closedValidCount:        canonicalValid.length,
+      excludedCount:           canonicalExcluded.length,
+      activeCount:             canonicalActive.length,
+      duplicateSnapshotCount:  totalSuperseded,
     },
+    cohortFingerprint,
+    countsByExclusionReason: countsByExclusion,
     telemetryStorageProfile: 'LONG_TELEMETRY_V9_COMPACT',
     canonicalVersions: LONG_RESEARCH_VERSION_STAMP,
     tickDirectionVersion: TICK_DIRECTION_VERSION,
@@ -590,6 +688,25 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
     [`${root}/excluded/excluded_trades.csv`]: buildLongTradeCsvString(excluded, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
     [`${root}/active/open_trades.csv`]: buildLongTradeCsvString(active, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
     [`${root}/forensics/exit_events.jsonl`]: forensicJsonl,
+    // Canonical output files (spec §11.4)
+    [`${root}/canonical/canonical_closed_valid.csv`]:  buildLongTradeCsvString(canonicalValid, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
+    [`${root}/canonical/canonical_closed_valid.jsonl`]: buildLongTradeJsonLinesString(canonicalValid, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
+    [`${root}/canonical/canonical_excluded.csv`]:      buildLongTradeCsvString(canonicalExcludedAnnotated, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
+    [`${root}/canonical/canonical_active.csv`]:        buildLongTradeCsvString(canonicalActive, { prepared: true, columns: LONG_BATCH_ANALYSIS_COLUMNS }),
+    [`${root}/canonical/canonical_duplicate_audit.csv`]: rowsToCsv(['canonicalTradeId', 'canonicalTradeIdSource', 'canonicalSnapshotSelectedReason', 'closed', 'closedAt', 'entryTime', 'symbol'], duplicateAudit),
+    [`${root}/canonical/canonical_manifest.json`]: JSON.stringify({
+      schemaVersion:              CANONICAL_EXPORT_SCHEMA_VERSION,
+      precedenceVersion:          CANONICAL_SNAPSHOT_PRECEDENCE_VERSION,
+      generatedAt,
+      sourceRowCount:             prepared.length,
+      uniqueCanonicalTradeCount:  canonicalAll.length,
+      closedValidCount:           canonicalValid.length,
+      excludedCount:              canonicalExcluded.length,
+      activeCount:                canonicalActive.length,
+      duplicateSnapshotCount:     totalSuperseded,
+      countsByExclusionReason:    countsByExclusion,
+      cohortFingerprint,
+    }, null, 2),
     [`${root}/summary/run_summary.csv`]: rowsToCsv(RUN_SUMMARY_HEADERS, runSummaries),
     [`${root}/summary/batch_summary.json`]: JSON.stringify(batchSummary, null, 2),
     [`${root}/summary/data_quality_summary.csv`]: rowsToCsv(['issue', 'count'], qualitySummary),

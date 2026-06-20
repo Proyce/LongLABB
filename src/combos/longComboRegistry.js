@@ -302,6 +302,38 @@ export const RETIRED_LONG_COMBOS_V1 = [
   LONG_GAINER_GREEN_REACCELERATION_V1,
 ];
 
+// June 20 2026 cross-batch confirmed research combo (spec §10.1).
+// Status: CROSS_BATCH_CONFIRMED_RESEARCH — LOG_ONLY, never an execution gate.
+// Origin: 2026-06-20 batch, n=331, avg fee-adj norm PnL=1.249%, WR=65.3%, PF=3.50
+// Positive archives: 3/3, positive chronological thirds: 3/3
+export const LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1 = makeCombo(
+  "LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1",
+  "MACD Bullish Expansion + CVD Bull + ATR >= 0.6",
+  (s) => {
+    const noHardAnti = s.longHardAntiComboActive !== true && s.longComboHardBlockPresent !== true;
+    const entrySnapshotValid = s.entrySnapshotCompletenessStatus !== 'INVALID';
+    return conditionResult([
+      { ok: deriveMacdBullishExpansion(s) === true, reason: "MACD_BULLISH_EXPANSION", missing: "NEEDS_MACD_BULLISH_EXPANSION" },
+      { ok: cvdLabel(s) === "BULL", reason: "CVD_BULL", missing: "NEEDS_CVD_BULL" },
+      { ok: Number(s.atrPct ?? 0) >= 0.6, reason: "ATR_GE_0_6", missing: "NEEDS_ATR_GE_0_6" },
+      { ok: entrySnapshotValid, reason: "ENTRY_SNAPSHOT_VALID", missing: "ENTRY_SNAPSHOT_INVALID" },
+      { ok: noHardAnti, reason: "NO_HARD_ANTI_COMBO", missing: "HAS_HARD_ANTI_COMBO" },
+    ]);
+  },
+);
+Object.assign(LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1, {
+  comboStatus:    'CROSS_BATCH_CONFIRMED_RESEARCH',
+  originBatch:    '2026-06-20',
+  originSampleCount: 331,
+  originAverageFeeAdjustedNormPnlPct: 1.249,
+  originFeeWinRatePct: 65.3,
+  originProfitFactor: 3.50,
+  positiveArchives: '3/3',
+  positiveChronologicalThirds: '3/3',
+  logOnly: true,
+  canAffectExecution: false,
+});
+
 export const LONG_POSITIVE_COMBOS = [
   LONG_UNIVERSAL_CORE_V1,
   FIRST_GREEN_DUMP_EXHAUSTION_LONG_V1,
@@ -315,6 +347,7 @@ export const LONG_POSITIVE_COMBOS = [
   LONG_GATE_STRONG_MICRO_UP_CLEAN_V1,
   LONG_BULL_CONFIRMED_VWAP_RECLAIM_V1,
   LONG_LOSER_SCALP_REVERSAL_CONFIRMED_V1,
+  LONG_MACD_EXPANSION_CVD_BULL_ATR_06_V1,
 ];
 
 // Alias used by purity checks and new tests

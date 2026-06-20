@@ -83,7 +83,7 @@ export function evaluateLongImmediateExit({
     return Object.freeze({ shouldClose: true, reason: CLOSE_REASON.STOP_LOSS, marginPnlPct, priceMovePct, lockBreach });
   }
   const heldMs = now - Number(trade.entryTime ?? now);
-  if (heldMs >= Number(trade.holdMs ?? defaultHoldMs)) {
+  if (heldMs >= Number(trade.configuredMaxHoldMs ?? trade.holdMs ?? defaultHoldMs)) {
     return Object.freeze({ shouldClose: true, reason: CLOSE_REASON.TIMEOUT, marginPnlPct, priceMovePct, lockBreach });
   }
   return Object.freeze({ shouldClose: false, reason: null, marginPnlPct, priceMovePct, lockBreach });
