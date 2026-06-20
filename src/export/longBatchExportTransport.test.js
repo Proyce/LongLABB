@@ -14,6 +14,7 @@ describe('Long batch export worker transport', () => {
       longComboDetails: [{ id: 'combo' }],
       longWinningSetupMatchDetails: [{ id: 'setup' }],
       entrySnapshotFieldStatus: { field: { status: 'RECORDED' } },
+      entryTickSnapshot: { events: [{ timestamp: 1, price: 100 }] },
     };
 
     const [snapshot] = createLongBatchWorkerSnapshot([source]);

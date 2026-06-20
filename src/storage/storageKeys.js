@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   watchlist:       "longlab:v1:watchlist",
   run:             "longlab:v1:run",
   holdMs:          "longlab:v1:holdMs",
+  autoRun:         "longlab:v1:autoRun",
   settings:        "longlab:v1:settings",
   discoveryEvents: "longlab:v1:discoveryEvents",
   shadowTrades:    "longlab:v1:shadowTrades",

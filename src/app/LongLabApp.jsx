@@ -131,6 +131,14 @@ import {
 import MarketRegimeHeader from "../components/MarketRegimeHeader.jsx";
 import AesDiscoveryTab from "../aesDiscovery/AesDiscoveryTab.jsx";
 import { STORAGE_KEYS } from "../storage/storageKeys.js";
+import {
+  buildRuntimeRecoverySnapshot,
+  clearRuntimeRecoveryThrough,
+  normalizeAutoRunForResume,
+  readRuntimeRecovery,
+  startRuntimeCheckpointLoop,
+  writeRuntimeRecovery,
+} from "../storage/runtimeRecovery.js";
 import { AES_DISCOVERY_CONFIG, mergeDiscoveryConfig } from "../aesDiscovery/aesDiscoveryConfig.js";
 import { buildFullLongUniverse, updateTickHistory, computeTickHistoryFields } from "../aesDiscovery/aesDiscoveryUniverse.js";
 import { selectDeepScanCandidates } from "../aesDiscovery/aesDiscoveryPrefilter.js";
@@ -201,6 +209,7 @@ const SCAN_REQUEST_TIMEOUT_MS = 12_000;
 const DEEP_TELEMETRY_SCAN_MS = 60_000;
 const BATCH_EXPORT_BUSY_PHASES = Object.freeze(['SNAPSHOTTING', 'QUEUED', 'PREPARING', 'COMPRESSING']);
 const LIFECYCLE_TICK_FLUSH_MS = 100;
+const RUNTIME_CHECKPOINT_MS = 3_000;
 const LIFECYCLE_SYMBOL_STALE_MS = 3_000;
 const LIFECYCLE_STALE_WATCH_INTERVAL_MS = 1_000;
 const LIFECYCLE_PRICE_SOURCE_PRIORITY = Object.freeze({
@@ -1427,6 +1436,12 @@ function AppCore() {
   const activePositionSymbolsKey = useMemo(() => [...new Set(
     samples.filter(sample => sample.closed !== true && sample.symbol).map(sample => sample.symbol),
   )].sort().join(","), [samples]);
+  const samplePersistenceStructureKey = useMemo(() => samples.map(sample => [
+    sample.id,
+    sample.closed === true ? 1 : 0,
+    sample.closedAt ?? "",
+    sample.notes ?? "",
+  ].join(":")).join("|"), [samples]);
   // autoRun shape: { id, targetBucket, completedRuns, maxRuns, phase: "starting"|"running"|"cooldown"|"done", phaseStart, baseRun, currentRun, currentCycle, currentEntryIds, runDurationMs, cooldownMs }
 
   // ── AES Discovery state ──────────────────────────────────────────────────────
@@ -1451,8 +1466,12 @@ function AppCore() {
   const scanBusyRef       = useRef(false);  // T2: prevents scan cycle overlap
   const deepScanBusyRef   = useRef(false);
   const lastDeepScanAtRef = useRef(0);
-  const samplesPersistRef = useRef(null);   // T7c: debounce timer for samples writes
   const autoRunRef        = useRef(null);
+  const latestSamplesRef  = useRef(samples);
+  const latestRunRef      = useRef(run);
+  const latestAutoRunRef  = useRef(autoRun);
+  const runtimeCheckpointRevisionRef = useRef(0);
+  const runtimeCheckpointChainRef = useRef(Promise.resolve());
   const startSetRef = useRef(null);
   const marketContextRef = useRef(null);
   const marketRegimeRef  = useRef(null);
@@ -1466,6 +1485,10 @@ function AppCore() {
   const lifecycleFlushTimerRef = useRef(null);
   const tickDirectionCollectorRef = useRef(null);
   const trailOnRef = useRef(trailOn);
+
+  latestSamplesRef.current = samples;
+  latestRunRef.current = run;
+  latestAutoRunRef.current = autoRun;
 
   useEffect(() => {
     trailOnRef.current = trailOn;
@@ -1564,14 +1587,35 @@ function AppCore() {
   useEffect(() => {
     (async () => {
       try {
-        const s = await window.storage.get(STORAGE_KEYS.samples);
-        if (s?.value) setSamples(JSON.parse(s.value).map(migrateLongTradeRecord).map(sample => compactLongTradeForRuntime(sanitizeSampleRun(sample, run))));
-        const w = await window.storage.get(STORAGE_KEYS.watchlist);
+        const recovery = readRuntimeRecovery(window.localStorage);
+        const recoveryRevision = Number(recovery?.revision);
+        runtimeCheckpointRevisionRef.current = Math.max(
+          runtimeCheckpointRevisionRef.current,
+          Number.isFinite(recoveryRevision) ? recoveryRevision : 0,
+        );
+        const [s, w, r, h, a] = await Promise.all([
+          window.storage.get(STORAGE_KEYS.samples),
+          window.storage.get(STORAGE_KEYS.watchlist),
+          window.storage.get(STORAGE_KEYS.run),
+          window.storage.get(STORAGE_KEYS.holdMs),
+          window.storage.get(STORAGE_KEYS.autoRun),
+        ]);
+        const restoredRun = normalizeRunValue(recovery?.run, parseInt(r?.value, 10) || 1);
+        const storedSamples = recovery?.samples ?? (s?.value ? JSON.parse(s.value) : []);
+        const restoredSamples = storedSamples
+          .map(migrateLongTradeRecord)
+          .map(sample => compactLongTradeForRuntime(sanitizeSampleRun(sample, restoredRun)));
+        const storedAutoRun = recovery && Object.prototype.hasOwnProperty.call(recovery, "autoRun")
+          ? recovery.autoRun
+          : (a?.value ? JSON.parse(a.value) : null);
+        const restoredAutoRun = normalizeAutoRunForResume(storedAutoRun, restoredSamples);
+
+        setSamples(restoredSamples);
         if (w?.value) setWatchlist(JSON.parse(w.value));
-        const r = await window.storage.get(STORAGE_KEYS.run);
-        if (r?.value) setRun(parseInt(r.value) || 1);
-        const h = await window.storage.get(STORAGE_KEYS.holdMs);
+        setRun(restoredRun);
         if (h?.value) setHoldMs(parseInt(h.value) || HOLD_MS);
+        setAutoRun(restoredAutoRun);
+        autoRunRef.current = restoredAutoRun;
         // Re-assert after restoring runtime config — verify nothing crept in.
         assertLongResearchOnly(LONG_RESEARCH_ONLY_CONFIG);
         setStorageState('LOADED');
@@ -1582,26 +1626,81 @@ function AppCore() {
     })();
   }, []);
 
-  // Samples: debounced 3s — persists on meaningful change (trade close, new sample),
-  // not every poll tick. Failures surfaced as a UI warning (T7d).
+  // Serialize runtime checkpoints through one chain so older IndexedDB writes
+  // cannot finish after and overwrite newer state.
+  const queueRuntimeCheckpoint = useCallback((prepared = null) => {
+    const revision = prepared?.revision ?? ++runtimeCheckpointRevisionRef.current;
+    const safeSamples = prepared?.safeSamples ?? compactLongTradesForPersistence(
+      latestSamplesRef.current.map(sample => sanitizeSampleRun(sample, latestRunRef.current)),
+    );
+    const runSnapshot = normalizeRunValue(prepared?.run, latestRunRef.current);
+    const autoRunSnapshot = prepared?.autoRun === undefined
+      ? latestAutoRunRef.current
+      : prepared.autoRun;
+
+    runtimeCheckpointChainRef.current = runtimeCheckpointChainRef.current
+      .catch(() => {})
+      .then(async () => {
+        await Promise.all([
+          window.storage.set(STORAGE_KEYS.samples, JSON.stringify(safeSamples)),
+          window.storage.set(STORAGE_KEYS.run, String(runSnapshot)),
+          window.storage.set(STORAGE_KEYS.autoRun, JSON.stringify(autoRunSnapshot)),
+        ]);
+        clearRuntimeRecoveryThrough(window.localStorage, revision);
+      })
+      .catch(e => {
+        console.error('[storage] runtime checkpoint failed:', e);
+        setStorageWarn(true);
+      });
+    return runtimeCheckpointChainRef.current;
+  }, []);
+
+  // A fixed checkpoint cadence cannot be starved by the 100ms lifecycle tick
+  // stream. Structural changes checkpoint immediately.
   useEffect(() => {
     if (!storageOk) return;
-    clearTimeout(samplesPersistRef.current);
-    samplesPersistRef.current = setTimeout(() => {
-      const safeSamples = compactLongTradesForPersistence(samples.map(sample => sanitizeSampleRun(sample, run)));
-      window.storage.set(STORAGE_KEYS.samples, JSON.stringify(safeSamples))
-        .catch(e => { console.error('[storage] samples write failed:', e); setStorageWarn(true); });
-    }, 3_000);
-    return () => clearTimeout(samplesPersistRef.current);
-  }, [samples, run, storageOk]);
+    return startRuntimeCheckpointLoop(queueRuntimeCheckpoint, RUNTIME_CHECKPOINT_MS);
+  }, [storageOk, queueRuntimeCheckpoint]);
+
+  useEffect(() => {
+    if (!storageOk) return;
+    queueRuntimeCheckpoint();
+  }, [samplePersistenceStructureKey, run, autoRun, storageOk, queueRuntimeCheckpoint]);
+
+  // IndexedDB writes may not finish during navigation. Keep a compact synchronous
+  // journal, prefer it at startup, and clear it only after a matching/newer
+  // IndexedDB checkpoint succeeds.
+  useEffect(() => {
+    if (!storageOk) return undefined;
+    const checkpointForNavigation = () => {
+      const revision = ++runtimeCheckpointRevisionRef.current;
+      const runSnapshot = latestRunRef.current;
+      const autoRunSnapshot = latestAutoRunRef.current;
+      const safeSamples = compactLongTradesForPersistence(
+        latestSamplesRef.current.map(sample => sanitizeSampleRun(sample, runSnapshot)),
+      );
+      writeRuntimeRecovery(window.localStorage, buildRuntimeRecoverySnapshot({
+        samples: safeSamples,
+        run: runSnapshot,
+        autoRun: autoRunSnapshot,
+        revision,
+      }));
+      queueRuntimeCheckpoint({ revision, safeSamples, run: runSnapshot, autoRun: autoRunSnapshot });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") checkpointForNavigation();
+    };
+    window.addEventListener("pagehide", checkpointForNavigation);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", checkpointForNavigation);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [storageOk, queueRuntimeCheckpoint]);
   useEffect(() => {
     if (storageOk) window.storage.set(STORAGE_KEYS.watchlist, JSON.stringify(watchlist))
       .catch(e => { console.error('[storage] watchlist write failed:', e); setStorageWarn(true); });
   }, [watchlist, storageOk]);
-  useEffect(() => {
-    if (storageOk) window.storage.set(STORAGE_KEYS.run, String(run))
-      .catch(e => { console.error('[storage] run write failed:', e); setStorageWarn(true); });
-  }, [run, storageOk]);
   useEffect(() => {
     if (storageOk) window.storage.set(STORAGE_KEYS.holdMs, String(holdMs))
       .catch(e => { console.error('[storage] holdMs write failed:', e); setStorageWarn(true); });
