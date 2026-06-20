@@ -15,6 +15,10 @@ import { getLongFilterOutcomePnl } from "../src/filters/longFilterEngine.js";
 import { LONG_PF10_TIER } from "../src/scoring/longPostFee10/longPostFee10.constants.js";
 import { LONG_RUNNER_TIER } from "../src/scoring/longCandidateRunner/longCandidateRunner.constants.js";
 import { evaluateBestDnaLongAudit } from "../src/audits/bestDnaLongAudit.js";
+import {
+  REGISTERED_LONG_COMBOS,
+  RETIRED_LONG_COMBOS_V1,
+} from "../src/combos/longComboRegistry.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -316,6 +320,23 @@ function sameSet(a, b) {
   if (clean.bestDnaLongScore !== polluted.bestDnaLongScore ||
       clean.bestDnaLongTier !== polluted.bestDnaLongTier) {
     console.error("[PURITY FAIL] Best DNA changes when deprecated aliases are added");
+    violations++;
+  }
+}
+
+// ─── B-15: RETIRED COMBO ABSENT FROM ACTIVE REGISTRY ─────────────────────────
+// LONG_GAINER_GREEN_REACCELERATION_V1 was retired (mean -0.267, WR 39.7%).
+// It must not appear in REGISTERED_LONG_COMBOS and must be in RETIRED_LONG_COMBOS_V1.
+{
+  const retiredId = "LONG_GAINER_GREEN_REACCELERATION_V1";
+  const inRegistered = REGISTERED_LONG_COMBOS.some(c => c.comboId === retiredId);
+  if (inRegistered) {
+    console.error(`[PURITY FAIL] ${retiredId} must not be in REGISTERED_LONG_COMBOS — retired in B-15`);
+    violations++;
+  }
+  const inRetired = RETIRED_LONG_COMBOS_V1.some(c => c.comboId === retiredId);
+  if (!inRetired) {
+    console.error(`[PURITY FAIL] ${retiredId} must be in RETIRED_LONG_COMBOS_V1 — register retirements explicitly`);
     violations++;
   }
 }

@@ -86,7 +86,12 @@ export function classifyTopGainerLong(s) {
   if (greenSignal && aboveVwap && flowBull) {
     continuationScore += 18;
     reasons.push("GREEN_REACCELERATION_CVD_BULL");
-    subBucket = "TOP_GAINER_GREEN_REACCELERATION_LONG";
+    // B-14: only assign if no structural setup has claimed the bucket.
+    // VWAP_SUPPORT is a weaker positional label; reacceleration with green+CVD BULL overrides it.
+    // HIGHER_LOW and BREAKOUT_RETEST carry a structural thesis that must be preserved.
+    if (subBucket === "TOP_GAINER_UNCLASSIFIED_LONG" || subBucket === "TOP_GAINER_VWAP_SUPPORT_LONG") {
+      subBucket = "TOP_GAINER_GREEN_REACCELERATION_LONG";
+    }
   } else if (greenSignal && momentumStrong) {
     continuationScore += 12;
     reasons.push("GREEN_IMPULSE_MOMENTUM_STRONG");

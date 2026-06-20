@@ -65,7 +65,9 @@ export const LONG_MOVEMENT_MATURITY_WEIGHTS = {
   last3UpOther: 3,
   microMultiConfirm: 4,
   microGreenImpulse: 3,
-  loserMicroTicksUpPenalty: -6,
+  microTicksUpOnly: 2,       // B-03: last 3 ticks UP but no active green impulse — partial credit
+  microRsiRolloverUp: 1,     // B-03: RSI turning up — early signal, minimal credit
+  loserMicroRedPressurePenalty: -6, // B-02: renamed from loserMicroTicksUpPenalty
 };
 
 // ── Volatility — direction-neutral ────────────────────────────────────────────
@@ -98,6 +100,7 @@ export const LONG_FLOW_MOMENTUM_WEIGHTS = {
   cvdBull: 4,
   cvdNeut: 2,
   cvdBearLoserNoGreen: -4,
+  cvdBearGainerNoGreen: -3, // B-04: CVD BEAR on a gainer without active green = caution
   macdPositiveExpanding: 5,
   macdBullishGainerContinuation: 2,
   macdBearishExpansion: -6,
@@ -157,13 +160,14 @@ export const LONG_GAINER_WEIGHTS = {
   rankMidBlowoffLane: -7,
   vwapLossAfterPump: -10,
   noContinuationConfirmation: -6,
+  overExtensionPenalty: -6, // B-07: continuation quality >= 140 = extreme extension risk
 };
 
 // ── Interaction — core combination bonuses ────────────────────────────────────
 export const LONG_INTERACTION_WEIGHTS = {
   universalCore: 5,        // green + no red + ATR>=0.2 + CVD BULL/NEUT
   universalCoreHighAtr: 2,
-  gainerSniper: 8,         // continuation quality >= 120 + last3 UP + ATR>=0.6
+  gainerSniper: 4,         // B-07: reduced from 8 — high continuation quality often = blowoff territory
   failedBreakdownGreen: 5, // failed breakdown + green + no red + CVD BULL/NEUT
   loserSniper: 7,          // green impulse + no red + CVD BULL/NEUT + ATR>=0.6 + spread<=0.05
   pullbackMature: 5,       // pullback > 0.8% + green + last3 UP + no red
