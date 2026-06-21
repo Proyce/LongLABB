@@ -65,24 +65,34 @@ export const PROFIT_LOCK_WATCH_HEALTH = Object.freeze({
   DISCONNECTED:  'DISCONNECTED',
 });
 
-// ── Legacy compatibility (retained for historical V1 records) ─────────────────
+// ── Protection state (V2) ─────────────────────────────────────────────────────
 export const PROFIT_LOCK_PROTECTION_STATE = Object.freeze({
-  NOT_ELIGIBLE:          'NOT_ELIGIBLE',
-  CALCULATED:            'CALCULATED',
-  SUBMITTING:            'SUBMITTING',
-  PROTECTION_PENDING:    'PROTECTION_PENDING',
-  PROTECTED:             'PROTECTED',
-  UPDATE_REQUIRED:       'UPDATE_REQUIRED',
-  UPDATING:              'UPDATING',
-  FLOOR_BREACHED_UNCLOSED: 'FLOOR_BREACHED_UNCLOSED',
-  EXCHANGE_TRIGGERED:    'EXCHANGE_TRIGGERED',
-  PARTIALLY_FILLED:      'PARTIALLY_FILLED',
-  FILLED:                'FILLED',
-  EMERGENCY_EXIT_PENDING: 'EMERGENCY_EXIT_PENDING',
-  EMERGENCY_EXITED:      'EMERGENCY_EXITED',
-  DEGRADED:              'DEGRADED',
-  FAILED:                'FAILED',
-  CLOSED:                'CLOSED',
+  DISARMED:                  'DISARMED',
+  LOCAL_WATCH_ARMED:         'LOCAL_WATCH_ARMED',    // local browser watch — NOT an exchange order
+  LOCAL_WATCH_HEALTHY:       'LOCAL_WATCH_HEALTHY',
+  LOCAL_WATCH_DEGRADED:      'LOCAL_WATCH_DEGRADED',
+  LOCAL_WATCH_STALE:         'LOCAL_WATCH_STALE',
+  BREACH_OBSERVED:           'BREACH_OBSERVED',
+  CLOSE_REQUESTED:           'CLOSE_REQUESTED',
+  CLOSE_COMMITTED:           'CLOSE_COMMITTED',
+  EXCHANGE_PROTECTED:        'EXCHANGE_PROTECTED',   // reserved for future exchange adapter
+  FAILED:                    'FAILED',
+  CLOSED:                    'CLOSED',
+  // Legacy aliases retained for migration of historical V1 records only:
+  NOT_ELIGIBLE:              'NOT_ELIGIBLE',
+  CALCULATED:                'CALCULATED',
+  SUBMITTING:                'SUBMITTING',
+  PROTECTION_PENDING:        'PROTECTION_PENDING',
+  PROTECTED:                 'PROTECTED',            // deprecated — use LOCAL_WATCH_ARMED
+  UPDATE_REQUIRED:           'UPDATE_REQUIRED',
+  UPDATING:                  'UPDATING',
+  FLOOR_BREACHED_UNCLOSED:   'FLOOR_BREACHED_UNCLOSED',
+  EXCHANGE_TRIGGERED:        'EXCHANGE_TRIGGERED',
+  PARTIALLY_FILLED:          'PARTIALLY_FILLED',
+  FILLED:                    'FILLED',
+  EMERGENCY_EXIT_PENDING:    'EMERGENCY_EXIT_PENDING',
+  EMERGENCY_EXITED:          'EMERGENCY_EXITED',
+  DEGRADED:                  'DEGRADED',
 });
 
 export const PROFIT_LOCK_PROTECTION_VENUE = Object.freeze({
@@ -222,9 +232,9 @@ export function synchronizeSimulatedProfitLockProtection(trade, lockUpdate, now 
     profitLockExchangeOrderId:          null,
     profitLockClientOrderId:            null,
 
-    // Legacy compat
-    profitLockProtectionState:          PROFIT_LOCK_PROTECTION_STATE.PROTECTED,
-    profitLockProtectionVenue:          PROFIT_LOCK_PROTECTION_VENUE.SIMULATED_LOCAL_STOP,
+    // Legacy compat (LOCAL_WATCH_ARMED replaces PROTECTED for local watches)
+    profitLockProtectionState:          PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_ARMED,
+    profitLockProtectionVenue:          PROFIT_LOCK_PROTECTION_VENUE.NONE,  // no exchange order exists
     profitLockProtectionVersion:        PROFIT_LOCK_PROTECTION_VERSION,
     profitLockProtectionRequested:      true,
     profitLockProtectedFloorPrice:      floor,

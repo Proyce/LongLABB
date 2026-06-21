@@ -228,15 +228,51 @@ function sideOf(trade) {
 }
 
 function isResearchEligible(trade) {
-  if (trade?.strategyResearchEligible === false) return false;
-  return trade?.finalizationDataQuality !== 'INVALID';
+  // Use the canonical exclusion classifier — null means clean/eligible (R-16)
+  return classifyResearchExclusion(trade) === null;
 }
 
-function classifyRunHealth({ gateRejectRate, profitLockFloorMissRate, tickCompleteRate }) {
+// RUN_HEALTH_CONFIG v2 — all thresholds tagged UNCALIBRATED_RULE_MODEL (R-20)
+const RUN_HEALTH_CONFIG = Object.freeze({
+  gateRejectFloodThreshold:          0.6,
+  profitLockFloorMissDegradedThreshold: 0.4,
+  tickCompleteSparseThreshold:       0.5,
+  tickEvidenceQualifiedSparseThreshold: 0.3,
+  dnaV2CoverageLowThreshold:         0.5,
+  canonicalPolicyCoverageLowThreshold: 0.5,
+  dataQualityDegradedThreshold:      0.7,
+  highExclusionRateThreshold:        0.3,
+  hardBlockHighThreshold:            0.3,
+  calibrationStatus:                 'UNCALIBRATED_RULE_MODEL',
+  version:                           'RUN_HEALTH_V2_2026_06',
+});
+
+function classifyRunHealth(metrics) {
+  const c = RUN_HEALTH_CONFIG;
   const labels = [];
-  if (gateRejectRate != null && gateRejectRate > 0.6) labels.push('REJECT_FLOOD');
-  if (profitLockFloorMissRate != null && profitLockFloorMissRate > 0.4) labels.push('PROFIT_LOCK_ENFORCEMENT_DEGRADED');
-  if (tickCompleteRate != null && tickCompleteRate < 0.5) labels.push('TICK_DATA_SPARSE');
+  const { gateRejectRate, profitLockFloorMissRate, tickCompleteRate,
+    tickEvidenceQualifiedRate, dnaV2CoverageRate, canonicalPolicyCoverageRate,
+    dataQualityCompleteRate, exclusionRate, hardBlockShadowRate } = metrics;
+
+  if (gateRejectRate != null && gateRejectRate > c.gateRejectFloodThreshold)
+    labels.push('REJECT_FLOOD');
+  if (profitLockFloorMissRate != null && profitLockFloorMissRate > c.profitLockFloorMissDegradedThreshold)
+    labels.push('PROFIT_LOCK_ENFORCEMENT_DEGRADED');
+  if (tickCompleteRate != null && tickCompleteRate < c.tickCompleteSparseThreshold)
+    labels.push('TICK_DATA_SPARSE');
+  if (tickEvidenceQualifiedRate != null && tickEvidenceQualifiedRate < c.tickEvidenceQualifiedSparseThreshold)
+    labels.push('TICK_EVIDENCE_SPARSE');
+  if (dnaV2CoverageRate != null && dnaV2CoverageRate < c.dnaV2CoverageLowThreshold)
+    labels.push('DNA_V2_COVERAGE_LOW');
+  if (canonicalPolicyCoverageRate != null && canonicalPolicyCoverageRate < c.canonicalPolicyCoverageLowThreshold)
+    labels.push('CANONICAL_POLICY_COVERAGE_LOW');
+  if (dataQualityCompleteRate != null && dataQualityCompleteRate < c.dataQualityDegradedThreshold)
+    labels.push('DATA_QUALITY_DEGRADED');
+  if (exclusionRate != null && exclusionRate > c.highExclusionRateThreshold)
+    labels.push('HIGH_EXCLUSION_RATE');
+  if (hardBlockShadowRate != null && hardBlockShadowRate > c.hardBlockHighThreshold)
+    labels.push('HIGH_HARD_BLOCK_RATE');
+
   return labels.length ? labels.join('|') : 'NOMINAL';
 }
 
@@ -276,7 +312,61 @@ function summarizeRun(run, trades) {
     ? Number((tickCompleteCount / tickTotalWithQuality).toFixed(4))
     : null;
 
-  const runHealthLabel = classifyRunHealth({ gateRejectRate, profitLockFloorMissRate, tickCompleteRate });
+  // ── Extended run health metrics v2 (R-20) ─────────────────────────────────
+  const tickEvidenceQualifiedCount = trades.filter(t => t?.tickEvidenceQualified === true).length;
+  const tickEvidenceQualifiedRate = trades.length > 0
+    ? Number((tickEvidenceQualifiedCount / trades.length).toFixed(4)) : null;
+
+  const dnaV2Count = trades.filter(t => t?.bestDnaLongScoreV2Shadow != null).length;
+  const dnaV2CoverageRate = trades.length > 0 ? Number((dnaV2Count / trades.length).toFixed(4)) : null;
+
+  const canonicalPolicyCount = trades.filter(t => t?.canonicalShadowEntryPolicyDecision != null).length;
+  const canonicalPolicyCoverageRate = trades.length > 0
+    ? Number((canonicalPolicyCount / trades.length).toFixed(4)) : null;
+
+  const dataQualityCompleteCount = trades.filter(t => t?.longFilterDataQuality === 'COMPLETE').length;
+  const dataQualityCompleteRate = trades.length > 0
+    ? Number((dataQualityCompleteCount / trades.length).toFixed(4)) : null;
+
+  const exclusionRate = closed.length > 0
+    ? Number(((closed.length - eligible.length) / closed.length).toFixed(4)) : null;
+
+  const hardBlockCount = trades.filter(t =>
+    t?.canonicalShadowEntryPolicyDecision === 'HARD_BLOCK' ||
+    t?.longShadowDecision === 'WOULD_HARD_BLOCK').length;
+  const hardBlockShadowRate = trades.length > 0
+    ? Number((hardBlockCount / trades.length).toFixed(4)) : null;
+
+  const allowShadowCount = trades.filter(t =>
+    t?.canonicalShadowEntryPolicyDecision === 'ALLOW' ||
+    t?.canonicalShadowEntryPolicyDecision === 'PREMIUM').length;
+  const premiumShadowCount = trades.filter(t => t?.canonicalShadowEntryPolicyDecision === 'PREMIUM').length;
+
+  const profitLockActivatedCount = trades.filter(t => t?.profitLockActive === true).length;
+  const profitLockActivatedRate = trades.length > 0
+    ? Number((profitLockActivatedCount / trades.length).toFixed(4)) : null;
+
+  const avgGateScore = trades.length > 0
+    ? (() => { const scores = trades.map(t => finiteNumber(t?.longGateScore)).filter(v => v != null); return scores.length ? Number((scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(4)) : null; })()
+    : null;
+
+  const avgDnaV2Score = dnaV2Count > 0
+    ? (() => { const scores = trades.map(t => finiteNumber(t?.bestDnaLongScoreV2Shadow)).filter(v => v != null); return scores.length ? Number((scores.reduce((s, v) => s + v, 0) / scores.length).toFixed(4)) : null; })()
+    : null;
+
+  const holdMsValues = eligible.map(t => finiteNumber(t?.closedAt != null && t?.entryTime != null ? t.closedAt - t.entryTime : null)).filter(v => v != null && v > 0);
+  const avgHoldMs = holdMsValues.length ? Math.round(holdMsValues.reduce((s, v) => s + v, 0) / holdMsValues.length) : null;
+
+  const cvdBullCount = trades.filter(t => (t?.entryCvdLabel ?? t?.cvdLabel) === 'BULL').length;
+  const cvdBearCount = trades.filter(t => (t?.entryCvdLabel ?? t?.cvdLabel) === 'BEAR').length;
+  const immediateGreenImpulseCount = trades.filter(t => t?.immediateGreenImpulse === true).length;
+  const hardAntiComboCount = trades.filter(t => t?.longHardAntiComboActive === true || t?.longComboHardBlockPresent === true).length;
+
+  const runHealthLabel = classifyRunHealth({
+    gateRejectRate, profitLockFloorMissRate, tickCompleteRate,
+    tickEvidenceQualifiedRate, dnaV2CoverageRate, canonicalPolicyCoverageRate,
+    dataQualityCompleteRate, exclusionRate, hardBlockShadowRate,
+  });
 
   return {
     run,
@@ -307,7 +397,32 @@ function summarizeRun(run, trades) {
     tickCompleteCount,
     tickTotalWithQuality,
     tickCompleteRate,
+    // Extended health metrics v2 (R-20)
+    tickEvidenceQualifiedCount,
+    tickEvidenceQualifiedRate,
+    dnaV2Count,
+    dnaV2CoverageRate,
+    canonicalPolicyCount,
+    canonicalPolicyCoverageRate,
+    dataQualityCompleteCount,
+    dataQualityCompleteRate,
+    exclusionRate,
+    hardBlockCount,
+    hardBlockShadowRate,
+    allowShadowCount,
+    premiumShadowCount,
+    profitLockActivatedCount,
+    profitLockActivatedRate,
+    avgGateScore,
+    avgDnaV2Score,
+    avgHoldMs,
+    cvdBullCount,
+    cvdBearCount,
+    immediateGreenImpulseCount,
+    hardAntiComboCount,
     runHealthLabel,
+    runHealthConfigVersion: RUN_HEALTH_CONFIG.version,
+    runHealthCalibrationStatus: RUN_HEALTH_CONFIG.calibrationStatus,
     startedAt: startTimes.length ? new Date(Math.min(...startTimes)).toISOString() : null,
     endedAt: endTimes.length ? new Date(Math.max(...endTimes)).toISOString() : null,
   };
@@ -475,18 +590,29 @@ function summarizeObservedVersions(trades) {
   return result;
 }
 
-function computeCohortFingerprint(canonicalValidTrades, precedenceVersion, exportSchemaVersion) {
+// SHA-256 cohort fingerprint (R-18). Uses Web Crypto in browser/worker or
+// Node.js crypto in test environments. Returns a prefixed hex string.
+async function computeCohortFingerprint(canonicalValidTrades, precedenceVersion, exportSchemaVersion) {
   const sortedIds = [...canonicalValidTrades]
     .map(t => String(t?.canonicalTradeId ?? t?.tradeId ?? t?.id ?? ''))
     .sort();
   const input = [sortedIds.join(','), precedenceVersion, exportSchemaVersion].join('|');
-  // FNV-1a 32-bit deterministic hash expressed as hex
-  let h = 2166136261;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+  try {
+    if (typeof crypto !== 'undefined' && crypto.subtle) {
+      const buf = new TextEncoder().encode(input);
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      const hex = [...new Uint8Array(hashBuf)].map(b => b.toString(16).padStart(2, '0')).join('');
+      return `CFP-SHA256-${hex.slice(0, 16)}`;
+    }
+  } catch {
+    // fall through to sync fallback
   }
-  return `CFP-${(h >>> 0).toString(16).padStart(8, '0')}`;
+  // Sync fallback (DJB2-32) for environments without Web Crypto
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) {
+    h = (Math.imul(h, 33) ^ input.charCodeAt(i)) >>> 0;
+  }
+  return `CFP-DJB2-${h.toString(16).padStart(8, '0')}`;
 }
 
 function slugify(value) {
@@ -497,7 +623,7 @@ function slugify(value) {
     .slice(0, 80) || 'batch';
 }
 
-export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
+export async function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
   const selectedRaw = options.alreadySelected
     ? dedupeLongTradesForAnalysis(trades)
     : selectLongBatchTrades(trades, descriptor);
@@ -529,8 +655,8 @@ export function buildLongBatchAnalysisFiles(trades, descriptor, options = {}) {
     countsByExclusion[r] = (countsByExclusion[r] ?? 0) + 1;
   }
 
-  // Cohort fingerprint: SHA-like hash over sorted IDs + precedence version
-  const cohortFingerprint = computeCohortFingerprint(
+  // Cohort fingerprint: SHA-256 over sorted IDs + precedence version (R-18)
+  const cohortFingerprint = await computeCohortFingerprint(
     canonicalValid,
     CANONICAL_SNAPSHOT_PRECEDENCE_VERSION,
     CANONICAL_EXPORT_SCHEMA_VERSION,

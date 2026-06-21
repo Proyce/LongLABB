@@ -101,7 +101,7 @@ export function buildLongShadowDecision({
   // Required: Gate, DNA V2 (or V1 fallback), danger audit, data quality.
   const hasGate  = longGate  != null && longGate.longGateEligibility  != null;
   const hasDna   = longAes   != null && (longAes.longAesEligibility != null || longAes.absoluteEntryEligibility != null ||
-                   longAes.bestDnaLongV2Score != null || longAes.bestDnaLongScore != null);
+                   longAes.bestDnaLongScoreV2Shadow != null || longAes.bestDnaLongScore != null);
   const hasAudit = longAudit != null && longAudit.longAuditDangerTier != null;
   const hasData  = dataQuality != null && dataQuality.longFilterDataQuality != null;
 
@@ -128,23 +128,22 @@ export function buildLongShadowDecision({
     blockReasons.push('LONG_GATE_RESEARCH_REJECT');
   }
 
-  // ── AES verdict ───────────────────────────────────────────────────────────
+  // ── AES verdict (DIAGNOSTIC_ONLY — must not drive final verdict) ────────────
+  // AES is demoted to diagnostic-only per spec R-10. Its verdict is captured
+  // for retrospective logging but MUST NOT affect hasBlock, hasReduce, or
+  // positiveReasons.
   const aesScore       = longAes?.longAesScore ?? longAes?.absoluteEntryScore ?? 0;
   const aesEligibility  = longAes?.longAesEligibility ?? longAes?.absoluteEntryEligibility;
 
   let aesVerdict = 'UNKNOWN';
   if (aesEligibility === 'RESEARCH_BLOCK') {
     aesVerdict = 'BLOCK';
-    blockReasons.push('LONG_AES_RESEARCH_BLOCKED');
   } else if (aesScore >= 80) {
     aesVerdict = 'HIGH';
-    positiveReasons.push('LONG_AES_HIGH');
   } else if (aesScore >= 65) {
     aesVerdict = 'VALID';
-    positiveReasons.push('LONG_AES_VALID');
   } else if (aesScore > 0) {
     aesVerdict = 'LOW';
-    cautionReasons.push('LONG_AES_LOW');
   }
 
   // ── Audit verdict ─────────────────────────────────────────────────────────
@@ -267,18 +266,16 @@ export function buildLongShadowDecision({
     auditVerdict === 'DANGER' ||
     marketBreadthVerdict === 'HOSTILE' ||
     marketContextVerdict === 'HOSTILE' ||
-    aesVerdict === 'BLOCK' ||
     baseGateVerdict === 'BLOCK';
 
   const hasReduce =
     marketBreadthVerdict === 'MIXED' ||
     marketContextVerdict === 'HEADWIND' ||
     auditVerdict === 'CAUTION' ||
-    bucketAuditVerdict === 'FAIL' ||
-    aesVerdict === 'LOW';
+    bucketAuditVerdict === 'FAIL';
 
-  // DNA V2 is now the canonical quality score (spec §9.1).
-  const dnaV2Score = longAes?.bestDnaLongV2Score ?? longAes?.bestDnaLongScore ?? 0;
+  // DNA V2 shadow is the canonical quality score (spec §9.1).
+  const dnaV2Score = longAes?.bestDnaLongScoreV2Shadow ?? longAes?.bestDnaLongScore ?? 0;
 
   if (hasHardBlock) {
     finalVerdict = SHADOW_VERDICT.WOULD_HARD_BLOCK;
@@ -305,7 +302,7 @@ export function buildLongShadowDecision({
 
   return {
     baseGateVerdict,
-    aesVerdict,  // Retained as diagnostic alias for AES
+    aesVerdict,  // Diagnostic alias — does NOT drive the final verdict (R-10)
     auditVerdict,
     bucketAuditVerdict,
     marketContextVerdict,
@@ -329,6 +326,17 @@ export function buildLongShadowDecision({
       { dataQuality: hasData, longGate: hasGate, dnaQuality: hasDna, longAudit: hasAudit }
     ).filter(([, v]) => !v).map(([k]) => k),
     shadowDecisionQualityModelUsed: 'GATE_DNA_V2_CANONICAL',
+
+    // AES captured as diagnostic-only — must not be used for policy decisions (R-10)
+    shadowDiagnosticComponents: {
+      aes: {
+        verdict:     aesVerdict,
+        score:       aesScore,
+        eligibility: aesEligibility ?? null,
+        diagnosticOnly: true,
+        canAffectExecution: false,
+      },
+    },
 
     logOnly:            true,
     canAffectExecution: false,

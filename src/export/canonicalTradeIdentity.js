@@ -11,8 +11,11 @@
 export const CANONICAL_RESEARCH_EXCLUSION = Object.freeze({
   ACTIVE:                           'ACTIVE',
   FINALIZATION_INVALID:             'FINALIZATION_INVALID',
+  FINALIZATION_FAILED:              'FINALIZATION_FAILED',
   ENTRY_PRICE_FALLBACK_USED_AS_FINAL: 'ENTRY_PRICE_FALLBACK_USED_AS_FINAL',
+  AUTO_END_ENTRY_PRICE_FALLBACK:    'AUTO_END_ENTRY_PRICE_FALLBACK',
   STALE_FINAL_PRICE_UNRESOLVED:     'STALE_FINAL_PRICE_UNRESOLVED',
+  PRICE_INTEGRITY_FAILED:           'PRICE_INTEGRITY_FAILED',
   FINAL_PNL_MISSING:                'FINAL_PNL_MISSING',
   DUPLICATE_SUPERSEDED:             'DUPLICATE_SUPERSEDED',
   MANUAL_EXCLUSION:                 'MANUAL_EXCLUSION',
@@ -120,25 +123,32 @@ export function compareCanonicalTradeSnapshots(left, right) {
   const rightExported = fn(right?.exportedAt) ?? 0;
   if (leftExported !== rightExported) return rightExported - leftExported;
 
-  // 9. Deterministic tie-breaker: hash of stable fields
-  const leftHash  = stableHash(left);
-  const rightHash = stableHash(right);
+  // 9. Deterministic tie-breaker: content-aware DJB2-32 hash
+  const leftHash  = snapshotContentHash(left);
+  const rightHash = snapshotContentHash(right);
   return leftHash < rightHash ? -1 : leftHash > rightHash ? 1 : 0;
 }
 
-function stableHash(obj) {
+// DJB2-32 content-aware hash for snapshot tie-breaking (R-17).
+// Includes lifecycle and finalization fields so snapshots with the same
+// identity keys but different finalization state still produce distinct hashes.
+function snapshotContentHash(obj) {
   const str = [
     obj?.canonicalTradeId ?? obj?.tradeId ?? obj?.id ?? '',
     obj?.entryPrice ?? '',
     obj?.entryTime  ?? '',
     obj?.symbol     ?? '',
+    obj?.lifecycleRevision   ?? '',
+    obj?.snapshotSequence    ?? '',
+    obj?.finalizationDataQuality ?? '',
+    obj?.finalPriceIsEntryFallback ?? '',
+    obj?.closedAt ?? '',
   ].join('|');
-  let h = 2166136261;
+  let h = 5381;
   for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
+    h = (Math.imul(h, 33) ^ str.charCodeAt(i)) >>> 0;
   }
-  return (h >>> 0).toString(16);
+  return h.toString(16).padStart(8, '0');
 }
 
 /**
@@ -153,10 +163,23 @@ export function classifyResearchExclusion(trade) {
   if (trade?.finalizationDataQuality === 'INVALID') {
     return CANONICAL_RESEARCH_EXCLUSION.FINALIZATION_INVALID;
   }
+  if (trade?.finalizationStatus === 'FAILED') {
+    return CANONICAL_RESEARCH_EXCLUSION.FINALIZATION_FAILED;
+  }
+  if (trade?.priceIntegrityStatus === 'FAILED') {
+    return CANONICAL_RESEARCH_EXCLUSION.PRICE_INTEGRITY_FAILED;
+  }
+  if (trade?.autoEndUsedEntryPriceFallback === true) {
+    return CANONICAL_RESEARCH_EXCLUSION.AUTO_END_ENTRY_PRICE_FALLBACK;
+  }
   if (trade?.finalPriceIsEntryFallback === true) {
     return CANONICAL_RESEARCH_EXCLUSION.ENTRY_PRICE_FALLBACK_USED_AS_FINAL;
   }
-  const pnl = trade?.feeAdjustedFinalPnlPct ?? trade?.finalPnlPct;
+  if (trade?.staleFinalPriceUnresolved === true) {
+    return CANONICAL_RESEARCH_EXCLUSION.STALE_FINAL_PRICE_UNRESOLVED;
+  }
+  const pnl = trade?.feeAdjustedFinalPnlPct ?? trade?.finalPnlPct
+    ?? trade?.feeAdjustedNormPnlPct ?? trade?.rawNormPnlPct;
   if (pnl == null || !Number.isFinite(Number(pnl))) {
     return CANONICAL_RESEARCH_EXCLUSION.FINAL_PNL_MISSING;
   }

@@ -13,6 +13,8 @@ const CORE_FIELDS = Object.freeze([
   'longMicroMomentumLabel', 'hasGreenConfirmation', 'hasRedDanger',
   'entryCvdLabel', 'spreadPct', 'atrPct', 'longGateScore', 'longAesScore',
   'bestDnaLongScore', 'longPostFee10EntryScore', 'longCandidateRunnerScoreAtEntry',
+  // Adequacy and hypothesis fields (R-14)
+  'tickSourceQuality', 'highAtrLongOpportunityScore', 'highAtrLongRiskScore',
 ]);
 
 export function buildEntrySnapshotProvenance(sample = {}, capturedAt = Date.now()) {
@@ -56,5 +58,9 @@ export function buildEntrySnapshotProvenance(sample = {}, capturedAt = Date.now(
     entryTickKnownFieldCount: sample.entryTickKnownFieldCount ?? tickKnown,
     entryTickCoveragePct: sample.entryTickCoveragePct ?? Math.round((tickKnown / tickRequiredFields.length) * 100),
     entryTickDataQuality: sample.entryTickDataQuality ?? 'INSUFFICIENT',
+    // Tick evidence availability fields
+    tickEvidenceRequired:  false,
+    tickEvidenceAvailable: sample.tickSourceQuality != null && sample.tickSourceQuality !== 'INSUFFICIENT',
+    tickEvidenceQualified: sample.tickSourceQuality === 'COMPLETE',
   });
 }

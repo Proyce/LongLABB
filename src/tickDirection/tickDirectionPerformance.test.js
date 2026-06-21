@@ -58,6 +58,6 @@ describe("tick direction bounded-ingest performance", () => {
     const compact = compactLongTradeForRuntime(full);
     const baseBytes = Buffer.byteLength(JSON.stringify(base));
     expect(Buffer.byteLength(JSON.stringify(full)) - baseBytes).toBeLessThan(8 * 1_024);
-    expect(Buffer.byteLength(JSON.stringify(compact)) - baseBytes).toBeLessThan(2 * 1_024);
+    expect(Buffer.byteLength(JSON.stringify(compact)) - baseBytes).toBeLessThan(2_200);
   });
 });

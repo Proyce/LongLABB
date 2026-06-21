@@ -188,6 +188,8 @@ import { downloadBlob, exportLongBatchAnalysisZip } from "../export/longBatchExp
 import { finiteNumberOrNull, safeFixed, safeSignedPercent, safeRound, hasFiniteClosedPnl, safeSymbol } from "../ui/safeFormat.js";
 import { compactLongTradeForRuntime, compactLongTradesForPersistence } from "../telemetry/telemetryCompaction.js";
 import { createTickDirectionCollector } from "../tickDirection/candidateTickStream.js";
+import { createLongLifecycleCloseCoordinator } from "../lifecycle/longLifecycleCloseCoordinator.js";
+import { resolveCanonicalTradeId } from "../export/canonicalTradeIdentity.js";
 import { TICK_DIRECTION_CONFIG } from "../tickDirection/tickDirection.config.js";
 import { captureTickDirectionSnapshot } from "../tickDirection/tickDirectionSnapshot.js";
 import {
@@ -1484,6 +1486,7 @@ function AppCore() {
   const lifecyclePendingTicksRef = useRef(new Map());
   const lifecycleFlushTimerRef = useRef(null);
   const tickDirectionCollectorRef = useRef(null);
+  const closeCoordinatorRef = useRef(null);
   const trailOnRef = useRef(trailOn);
 
   latestSamplesRef.current = samples;
@@ -1535,7 +1538,21 @@ function AppCore() {
     };
   }, []);
 
+  // Close arbitration coordinator — prevents first-callback-wins race across
+  // REST poll and WebSocket close triggers for the same trade lifecycle.
+  useEffect(() => {
+    closeCoordinatorRef.current = createLongLifecycleCloseCoordinator({
+      arbitrationWindowMs: 25,
+    });
+    return () => {
+      closeCoordinatorRef.current?.destroy();
+      closeCoordinatorRef.current = null;
+    };
+  }, []);
+
   const tickResearchMembershipKey = useMemo(() => {
+    // Active positions are monitored by openPositionLifecycle, not the pre-entry
+    // research collector. Injecting them here permanently occupies research slots.
     const ranked = [
       ...loserTickers.slice(0, TICK_DIRECTION_CONFIG.topSymbolsPerSide).map((ticker, index) => ({
         symbol: ticker.symbol,
@@ -1547,11 +1564,6 @@ function AppCore() {
         priority: 2_000 - index,
         source: "TOP_GAINER",
       })),
-      ...activePositionSymbolsKey.split(",").filter(Boolean).map((symbol, index) => ({
-        symbol,
-        priority: 4_000 - index,
-        source: "LIFECYCLE_HANDOVER",
-      })),
     ];
     const deduped = new Map();
     ranked.forEach(member => {
@@ -1561,7 +1573,7 @@ function AppCore() {
     return JSON.stringify([...deduped.values()]
       .sort((left, right) => right.priority - left.priority || left.symbol.localeCompare(right.symbol))
       .slice(0, TICK_DIRECTION_CONFIG.maxSymbols));
-  }, [loserTickers, gainerTickers, activePositionSymbolsKey]);
+  }, [loserTickers, gainerTickers]);
 
   useEffect(() => {
     const collector = tickDirectionCollectorRef.current;
@@ -2883,7 +2895,12 @@ function AppCore() {
       exitProfileReason: `INITIAL_BIAS_${exitProfileInitialBias}`,
     });
 
+    // Assign canonical trade ID at creation time (R-17)
+    Object.assign(entry, resolveCanonicalTradeId(entry));
+
     setSamples(prev => [...prev, entry]);
+    // Lifecycle handover: release research slot after grace period
+    tickDirectionCollectorRef.current?.notifyLifecycleHandover(entry.symbol, entry.entryTime);
     toast(`Added ${entry.symbol} to Samples.`, { tone: "long" });
     setTab("samples");
 
@@ -3303,7 +3320,14 @@ function AppCore() {
       });
     });
 
+    // Assign canonical trade IDs at creation time (R-17)
+    newEntries.forEach(entry => Object.assign(entry, resolveCanonicalTradeId(entry)));
+
     setSamples(prev => [...prev, ...newEntries]);
+    // Lifecycle handover for each batch entry: release research slot after grace period
+    newEntries.forEach(entry => {
+      tickDirectionCollectorRef.current?.notifyLifecycleHandover(entry.symbol, entry.entryTime);
+    });
     setTab("samples");
 
     newEntries.forEach(entry => {
@@ -5638,16 +5662,23 @@ function ActiveCard({ s, now, trailOn, onClose, onRemove, noteEditing, noteText,
             </span>
             {s.trailActive && <span style={{color:"#00ff88",fontSize:8,background:"#001408",padding:"2px 5px",borderRadius:2,letterSpacing:1}}>⬆ TRAILING</span>}
             {(s.profitLockStrategyActive || s.profitLockActive) && (() => {
-              const verified = s.profitLockProtectionVerified === true;
               const breached = s.profitLockProtectionState === PROFIT_LOCK_PROTECTION_STATE.FLOOR_BREACHED_UNCLOSED;
+              const localWatchArmed =
+                s.profitLockProtectionState === PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_ARMED ||
+                s.profitLockProtectionState === PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_HEALTHY ||
+                s.profitLockProtectionState === PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_DEGRADED ||
+                s.profitLockProtectionState === PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_STALE ||
+                // Legacy compat for existing trades recorded before V2 rename
+                (s.profitLockProtectionState === PROFIT_LOCK_PROTECTION_STATE.PROTECTED &&
+                  s.profitLockProtectionVenue !== 'EXCHANGE_NATIVE');
               const label = breached
                 ? "FLOOR BREACHED"
-                : verified
-                  ? `FLOOR PROTECTED · ${s.profitLockProtectionVenue ?? "LOCAL"}`
+                : localWatchArmed
+                  ? "LOCAL FLOOR WATCH ACTIVE"
                   : `LOCK CALCULATED · ${s.profitLockProtectionState ?? "PENDING"}`;
-              const color = breached ? "#ff3344" : verified ? "#55ff88" : "#ffa500";
+              const color = breached ? "#ff3344" : localWatchArmed ? "#55ff88" : "#ffa500";
               return (
-                <span title={`Stage ${s.profitLockStage ?? "?"} · floor ${fPct(s.profitLockLevelMarginPct ?? 0)}`} style={{color,fontSize:8,background:breached?"#240006":verified?"#001408":"#1b1000",padding:"2px 6px",borderRadius:2,letterSpacing:0.6}}>
+                <span title={`Stage ${s.profitLockStage ?? "?"} · floor ${fPct(s.profitLockLevelMarginPct ?? 0)}`} style={{color,fontSize:8,background:breached?"#240006":localWatchArmed?"#001408":"#1b1000",padding:"2px 6px",borderRadius:2,letterSpacing:0.6}}>
                   {label}
                 </span>
               );

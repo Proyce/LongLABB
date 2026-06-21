@@ -546,6 +546,79 @@ const COMPACT_V8_EXTRA_COLUMNS = Object.freeze([
   col('longDataQualityMissingRequiredCount', get('longDataQualityMissingRequiredCount')),
   col('longDataQualityPrimaryMissingField', get('longDataQualityPrimaryMissingField')),
   col('longDataQualityVerdictDriver', get('longDataQualityVerdictDriver')),
+
+  // ── Close coordinator group (R-19) ───────────────────────────────────────────
+  col('closeCoordinatorDecisionSource',      get('closeCoordinatorDecisionSource')),
+  col('closeCoordinatorArbitrationWindowMs', get('closeCoordinatorArbitrationWindowMs')),
+  col('closeCoordinatorCandidateCount',      get('closeCoordinatorCandidateCount')),
+  col('closeCoordinatorSelectedTriggerSource', get('closeCoordinatorSelectedTriggerSource')),
+  col('closeCoordinatorSelectedExchangeEventTime', get('closeCoordinatorSelectedExchangeEventTime')),
+  col('closeCoordinatorWinningTriggerPriority', get('closeCoordinatorWinningTriggerPriority')),
+
+  // ── Profit-lock truth group (R-19) ──────────────────────────────────────────
+  col('profitLockFloorOutcome',       get('profitLockFloorOutcome')),
+  col('profitLockFloorOutcomeReason', get('profitLockFloorOutcomeReason')),
+
+  // ── Tick source adequacy group (R-19) ────────────────────────────────────────
+  col('tickSourceQuality',            get('tickSourceQuality')),
+  colJson('tickSourceQualityReasons', get('tickSourceQualityReasons')),
+  col('tickSourceCalibrationStatus',  get('tickSourceCalibrationStatus')),
+  col('tickEvidenceRequired',         get('tickEvidenceRequired')),
+  col('tickEvidenceAvailable',        get('tickEvidenceAvailable')),
+  col('tickEvidenceQualified',        get('tickEvidenceQualified')),
+
+  // ── High-ATR V2 score group (R-19) ───────────────────────────────────────────
+  col('marketTickSignalStrengthScore',   get('marketTickSignalStrengthScore')),
+  col('highAtrLongOpportunityScore',     get('highAtrLongOpportunityScore')),
+  col('highAtrLongOpportunityTier',      get('highAtrLongOpportunityTier')),
+  col('highAtrLongRiskScore',            get('highAtrLongRiskScore')),
+  col('highAtrLongRiskTier',             get('highAtrLongRiskTier')),
+  col('highAtrOpportunityCalibrationStatus', get('highAtrOpportunityCalibrationStatus')),
+  col('highAtrRiskCalibrationStatus',    get('highAtrRiskCalibrationStatus')),
+
+  // ── High-ATR hypotheses group (R-19) ─────────────────────────────────────────
+  colJson('highAtrPositiveHypothesesMatched', get('highAtrPositiveHypothesesMatched')),
+  colJson('highAtrRiskHypothesesMatched',     get('highAtrRiskHypothesesMatched')),
+  col('highAtrHypothesisEvaluationVersion',   get('highAtrHypothesisEvaluationVersion')),
+
+  // ── Canonical shadow policy group (R-19) ────────────────────────────────────
+  col('canonicalShadowEntryPolicyDecision',   get('canonicalShadowEntryPolicyDecision')),
+  col('canonicalShadowEntryPolicyVersion',    get('canonicalShadowEntryPolicyVersion')),
+  col('canonicalShadowQualityModelUsed',      get('canonicalShadowQualityModelUsed')),
+  col('canonicalShadowDnaVersionUsed',        get('canonicalShadowDnaVersionUsed')),
+  col('canonicalShadowTickEvidenceUsed',      get('canonicalShadowTickEvidenceUsed')),
+  col('canonicalShadowTickEvidenceQualified', get('canonicalShadowTickEvidenceQualified')),
+  col('shadowDecisionOptionalCoveragePct',    get('shadowDecisionOptionalCoveragePct')),
+  colJson('shadowDecisionMissingRequiredComponents', get('shadowDecisionMissingRequiredComponents')),
+
+  // ── Volume role group (R-19) ─────────────────────────────────────────────────
+  col('longVolumeRole',                    get('longVolumeRole')),
+  col('longVolumeRoleVersion',             get('longVolumeRoleVersion')),
+  col('longVolumeRoleCvdLabel',            get('longVolumeRoleCvdLabel')),
+  col('longVolumeRoleHasPositiveFlow',     get('longVolumeRoleHasPositiveFlow')),
+  col('longVolumeRoleHasQualifiedStructure', get('longVolumeRoleHasQualifiedStructure')),
+
+  // ── Tick membership / transport group (R-19) ─────────────────────────────────
+  col('tickResearchBothSourcesConnected',  get('tickResearchBothSourcesConnected')),
+  col('tickResearchAnySourceConnected',    get('tickResearchAnySourceConnected')),
+  col('tickResearchBookActiveSubscriptionCount',  get('tickResearchBookActiveSubscriptionCount')),
+  col('tickResearchTradeActiveSubscriptionCount', get('tickResearchTradeActiveSubscriptionCount')),
+  col('tickResearchLastRotationAt',        get('tickResearchLastRotationAt')),
+  col('tickResearchRotationFailureCount',  get('tickResearchRotationFailureCount')),
+
+  // ── Hold timing group (R-19) ─────────────────────────────────────────────────
+  col('holdTimingMs',          get('holdTimingMs')),
+  col('holdTimingReason',      get('holdTimingReason')),
+  col('holdTimingTriggeredBy', get('holdTimingTriggeredBy')),
+
+  // ── Canonical trade identity (R-17) ──────────────────────────────────────────
+  col('canonicalTradeId',                 get('canonicalTradeId')),
+  col('canonicalTradeIdSource',           get('canonicalTradeIdSource')),
+  col('canonicalTradeIdentityConfidence', get('canonicalTradeIdentityConfidence')),
+  col('canonicalResearchExclusionReason', get('canonicalResearchExclusionReason')),
+  col('finalPriceIsEntryFallback',        get('finalPriceIsEntryFallback')),
+  col('staleFinalPriceUnresolved',        get('staleFinalPriceUnresolved')),
+  col('finalizationStatus',               get('finalizationStatus')),
 ]);
 
 // V8 default: compact analysis contract. The full forensic schema remains
