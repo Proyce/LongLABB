@@ -1,6 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { evaluateEntryPolicyLogOnly } from "./evaluateEntryPolicyLogOnly.js";
+import { evaluateCanonicalShadowPolicyV3 } from "./evaluateCanonicalShadowPolicyV3.js";
 import { ENTRY_POLICY_LOG_ONLY_CONFIG } from "../config/entryPolicyLogOnlyConfig.js";
+
+// Fields that MUST NOT appear in any log-only policy output.
+// Their presence would indicate execution-affecting logic contaminating the shadow layer.
+const FORBIDDEN_ENTRY_POLICY_FIELDS = Object.freeze([
+  // Candidate lifecycle modification
+  'candidateRemoved', 'candidateFiltered', 'candidateDropped', 'candidateSkipped',
+  'forceSkip', 'skipEntry', 'blockEntry', 'forceBlock',
+  // Execution parameter mutation
+  'adjustedLeverage', 'adjustedPositionSize', 'adjustedStopLoss', 'adjustedTakeProfit',
+  'sizeAdjustment', 'leverageAdjustment', 'stopLossOverride', 'takeProfitOverride',
+  'entryAdjustedPrice', 'slippageAdjustedPrice',
+  // Direct execution flags (must not come from policy layer)
+  'executionApproved', 'executionBlocked', 'executionModified',
+]);
 
 function makeCandidate(overrides = {}) {
   return {
@@ -104,6 +119,38 @@ describe("evaluateEntryPolicyLogOnly — execution safety", () => {
     const block = evaluateEntryPolicyLogOnly(makeCandidate({ cvdLabel: "BULL" }));
     expect(allow.entryPolicyWouldAllow).toBe(!allow.entryPolicyWouldBlock);
     expect(block.entryPolicyWouldAllow).toBe(!block.entryPolicyWouldBlock);
+  });
+});
+
+describe("evaluateEntryPolicyLogOnly — forbidden field purity (R-11/D1)", () => {
+  it("result contains no forbidden execution-affecting fields", () => {
+    const result = evaluateEntryPolicyLogOnly(makeCandidate());
+    const present = FORBIDDEN_ENTRY_POLICY_FIELDS.filter(f => f in result);
+    expect(present).toEqual([]);
+  });
+
+  it("result contains no forbidden fields even for a block candidate", () => {
+    const result = evaluateEntryPolicyLogOnly(makeCandidate({ longAuditDanger: true }));
+    const present = FORBIDDEN_ENTRY_POLICY_FIELDS.filter(f => f in result);
+    expect(present).toEqual([]);
+  });
+
+  it("evaluateEntryPolicyLogOnly is importable and is a function (no vacuous pass)", () => {
+    expect(typeof evaluateEntryPolicyLogOnly).toBe("function");
+  });
+
+  it("evaluateCanonicalShadowPolicyV3 result contains no forbidden fields", () => {
+    const result = evaluateCanonicalShadowPolicyV3({
+      longGateScore: 75, longGateWouldPass: true,
+      bestDnaLongScoreV2Shadow: 85,
+      longAuditDangerTier: 'SAFE',
+    });
+    const present = FORBIDDEN_ENTRY_POLICY_FIELDS.filter(f => f in result);
+    expect(present).toEqual([]);
+  });
+
+  it("evaluateCanonicalShadowPolicyV3 is importable and is a function (no vacuous pass)", () => {
+    expect(typeof evaluateCanonicalShadowPolicyV3).toBe("function");
   });
 });
 

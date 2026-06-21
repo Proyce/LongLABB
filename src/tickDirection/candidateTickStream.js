@@ -10,6 +10,8 @@
 //   - Planned 23h50m connection rotation with jittered reconnect backoff.
 //   - Lifecycle handover: active positions leave the research slot after
 //     lifecycleHandoverGraceMs, freeing it for pre-entry candidates.
+//   - Each connection (book / trade) owns its own subscription state so that
+//     a reconnect on one socket never clears the other's subscriptions.
 
 import {
   parseAggTradeTick,
@@ -39,6 +41,13 @@ const RECONNECT_JITTER_PCT    = 0.20;
 
 // Planned rotation: rotate connections before Binance's 24h server-side close
 const PLANNED_ROTATION_MS = 23 * 60 * 60 * 1_000 + 50 * 60 * 1_000;
+
+const MEMBERSHIP_REASON = Object.freeze({
+  TOP_GAINER:         'TOP_GAINER',
+  TOP_LOSER:          'TOP_LOSER',
+  IMMINENT_ENTRY:     'IMMINENT_ENTRY',
+  LIFECYCLE_HANDOVER: 'LIFECYCLE_HANDOVER',
+});
 
 function hashSymbols(symbols) {
   let hash = 2166136261;
@@ -77,15 +86,11 @@ function normalizeMembers(members, config) {
 /** Classify an inbound message and return its type. */
 function classifyMessage(message) {
   if (message == null || typeof message !== "object") return "UNKNOWN";
-  // Subscription ack: { result: null, id: number } or { result: {...}, id: number }
   if ("id" in message && ("result" in message || "error" in message)) {
     return message.error ? "SUBSCRIPTION_ERROR" : "SUBSCRIPTION_ACK";
   }
-  // Ping / protocol control
   if (message.ping != null || message.pong != null) return "PING";
-  // Combined stream: { stream: "...", data: {...} }
   if (typeof message.stream === "string" && message.data != null) return "COMBINED_MARKET";
-  // Direct payload
   if (message.e != null || message.b != null) return "DIRECT_MARKET";
   return "UNKNOWN";
 }
@@ -96,44 +101,48 @@ export class CandidateTickStream {
     this.bufferStore = options.bufferStore ?? new TickDirectionBufferStore(this.config);
     this.WebSocketImpl = options.WebSocketImpl ?? globalThis.WebSocket;
 
-    // Shared persistent connections (one per kind)
+    // Shared persistent connections (one per kind) — each owns its own subscription state
     this._connections = new Map(); // kind → ConnectionState
 
     // Membership tracking
     this.members = new Map();  // symbol → { symbol, priority, lastDesiredAt, membershipReason }
     this.desired = [];
-    this._activeSubscriptions = new Set();  // currently subscribed stream names
-    this._pendingAcks         = new Map();  // id → { resolve, reject, timer }
-    this._nextSubscriptionId  = 1;
-    this._ctrlQueue           = [];
-    this._ctrlTimer           = null;
-    this._lastCtrlSentAt      = 0;
+
+    // Lifecycle handover: symbol → Set<reason>
+    this._membershipReasons = new Map();
 
     // Lifecycle handover tracking
     this._handoverPending = new Map(); // symbol → { exitAt, completed }
 
     this.membershipTimer = null;
     this.pruneTimer      = null;
-    this.rotationTimer   = null;
     this.destroyed       = false;
     this.started         = false;
 
     this.health = {
-      tickResearchStreamConnected:       false,
-      tickResearchBookConnected:         false,
-      tickResearchTradeConnected:        false,
-      tickResearchSubscribedSymbolCount: 0,
-      tickResearchLastMessageAt:         null,
-      tickResearchReconnectCount:        0,
-      tickResearchMembershipHash:        "",
-      tickResearchParseErrorCount:       0,
-      // Transport health counters (separate from parse errors)
-      tickResearchCtrlAckCount:          0,
-      tickResearchCtrlErrorCount:        0,
-      tickResearchPlannedRotationCount:  0,
+      tickResearchStreamConnected:           false,
+      tickResearchBookConnected:             false,
+      tickResearchTradeConnected:            false,
+      tickResearchBothSourcesConnected:      false,
+      tickResearchAnySourceConnected:        false,
+      tickResearchSubscribedSymbolCount:     0,
+      tickResearchLastMessageAt:             null,
+      tickResearchBookLastMessageAgeMs:      null,
+      tickResearchTradeLastMessageAgeMs:     null,
+      tickResearchReconnectCount:            0,
+      tickResearchMembershipHash:            "",
+      tickResearchParseErrorCount:           0,
+      tickResearchCtrlAckCount:              0,
+      tickResearchCtrlErrorCount:            0,
+      tickResearchPlannedRotationCount:      0,
       tickResearchUnexpectedDisconnectCount: 0,
-      tickResearchActiveSubscriptionCount: 0,
-      tickResearchPendingSubscriptionCount: 0,
+      tickResearchBookActiveSubscriptionCount:    0,
+      tickResearchTradeActiveSubscriptionCount:   0,
+      tickResearchBookPendingSubscriptionCount:   0,
+      tickResearchTradePendingSubscriptionCount:  0,
+      tickResearchRotationFailureCount:      0,
+      tickResearchLastRotationAt:            null,
+      tickResearchLastRotationReason:        null,
     };
   }
 
@@ -178,24 +187,40 @@ export class CandidateTickStream {
 
   /**
    * Called at entry time. Keeps the symbol in research membership for
-   * lifecycleHandoverGraceMs, then removes it so an active position does not
+   * lifecycleHandoverGraceMs via LIFECYCLE_HANDOVER reason, then removes it
+   * (unless another reason is still active) so an active position does not
    * permanently occupy one of the research slots.
    */
-  notifyLifecycleHandover(symbol, now = Date.now()) {
-    const graceMs = this.config.lifecycleHandoverGraceMs ?? 5_000;
+  notifyLifecycleHandover(symbol, entryTime = Date.now()) {
+    const graceMs = this.config.lifecycleHandoverGraceMs ?? 10_000;
     const sym = upper(symbol);
+
+    // Add LIFECYCLE_HANDOVER reason
+    if (!this._membershipReasons.has(sym)) {
+      this._membershipReasons.set(sym, new Set());
+    }
+    this._membershipReasons.get(sym).add(MEMBERSHIP_REASON.LIFECYCLE_HANDOVER);
+
     this._handoverPending.set(sym, {
-      exitAt:    now + graceMs,
+      exitAt:    entryTime + graceMs,
       completed: false,
     });
-    // After grace, remove from desired membership.
+
+    // After grace period, remove LIFECYCLE_HANDOVER reason
     setTimeout(() => {
       const h = this._handoverPending.get(sym);
       if (h && !h.completed) {
         h.completed = true;
-        this.members.delete(sym);
-        this.desired = this.desired.filter(s => s !== sym);
-        this._scheduleApply(0);
+        const reasons = this._membershipReasons.get(sym);
+        if (reasons) reasons.delete(MEMBERSHIP_REASON.LIFECYCLE_HANDOVER);
+
+        // Only remove symbol from desired if no other reason remains
+        const otherReasons = reasons ? [...reasons].filter(r => r !== MEMBERSHIP_REASON.LIFECYCLE_HANDOVER) : [];
+        if (otherReasons.length === 0) {
+          this.members.delete(sym);
+          this.desired = this.desired.filter(s => s !== sym);
+          this._scheduleApply(0);
+        }
       }
     }, graceMs);
   }
@@ -207,19 +232,29 @@ export class CandidateTickStream {
     const trade = this._connections.get("trade");
     const bookConnected  = book?.ws?.readyState  === 1 && book?.lastMessageAt  != null;
     const tradeConnected = trade?.ws?.readyState === 1 && trade?.lastMessageAt != null;
-    const last = this.health.tickResearchLastMessageAt;
+
+    const bookAgeMs  = book?.lastMessageAt  != null ? Math.max(0, now - book.lastMessageAt)  : null;
+    const tradeAgeMs = trade?.lastMessageAt != null ? Math.max(0, now - trade.lastMessageAt) : null;
 
     return {
       ...this.health,
-      tickResearchStreamConnected:       bookConnected || tradeConnected,
-      tickResearchBookConnected:         bookConnected,
-      tickResearchTradeConnected:        tradeConnected,
-      tickResearchSubscribedSymbolCount: this._activeSubscriptions.size / 2, // book + trade per symbol
-      tickResearchLastMessageAgeMs:      last == null ? null : Math.max(0, now - last),
-      tickResearchActiveSubscriptionCount: this._activeSubscriptions.size,
-      tickResearchPendingSubscriptionCount: this._ctrlQueue.length,
-      tickResearchStreamSchemaVersion:   TICK_DIRECTION_STREAM_SCHEMA_VERSION,
-      tickResearchMembershipHash:        hashSymbols([...this.desired].sort()),
+      tickResearchStreamConnected:           bookConnected || tradeConnected,
+      tickResearchBookConnected:             bookConnected,
+      tickResearchTradeConnected:            tradeConnected,
+      tickResearchBothSourcesConnected:      bookConnected && tradeConnected,
+      tickResearchAnySourceConnected:        bookConnected || tradeConnected,
+      tickResearchSubscribedSymbolCount:     this.desired.length,
+      tickResearchLastMessageAgeMs:          bookAgeMs != null || tradeAgeMs != null
+        ? Math.min(bookAgeMs ?? Infinity, tradeAgeMs ?? Infinity)
+        : null,
+      tickResearchBookLastMessageAgeMs:      bookAgeMs,
+      tickResearchTradeLastMessageAgeMs:     tradeAgeMs,
+      tickResearchBookActiveSubscriptionCount:  book?.activeSubscriptions?.size ?? 0,
+      tickResearchTradeActiveSubscriptionCount: trade?.activeSubscriptions?.size ?? 0,
+      tickResearchBookPendingSubscriptionCount:  book?.controlQueue?.length ?? 0,
+      tickResearchTradePendingSubscriptionCount: trade?.controlQueue?.length ?? 0,
+      tickResearchStreamSchemaVersion:       TICK_DIRECTION_STREAM_SCHEMA_VERSION,
+      tickResearchMembershipHash:            hashSymbols([...this.desired].sort()),
     };
   }
 
@@ -227,15 +262,11 @@ export class CandidateTickStream {
     this.destroyed = true;
     this.started   = false;
     clearTimeout(this.membershipTimer);
-    clearTimeout(this.rotationTimer);
     clearInterval(this.pruneTimer);
     this.membershipTimer = null;
-    this.rotationTimer   = null;
     this.pruneTimer      = null;
     for (const conn of this._connections.values()) this._closeConnection(conn, "destroy");
     this._connections.clear();
-    for (const { timer } of this._pendingAcks.values()) clearTimeout(timer);
-    this._pendingAcks.clear();
   }
 
   _scheduleApply(delay) {
@@ -243,89 +274,86 @@ export class CandidateTickStream {
     clearTimeout(this.membershipTimer);
     this.membershipTimer = setTimeout(() => {
       this.membershipTimer = null;
-      this._applyMembership();
+      this.reconcileConnectionSubscriptions("book");
+      this.reconcileConnectionSubscriptions("trade");
     }, delay);
   }
 
-  _applyMembership() {
-    if (this.destroyed) return;
+  /**
+   * Reconcile subscriptions for a single connection kind.
+   * Each kind only ever sends its own stream type:
+   *   book  → @bookTicker
+   *   trade → @aggTrade
+   */
+  reconcileConnectionSubscriptions(kind) {
+    const conn = this._connections.get(kind);
+    if (!conn || conn.ws?.readyState !== 1) return;
+
     const symbols = [...this.desired].sort();
+    const desired = kind === "book"
+      ? new Set(symbols.map(s => `${lower(s)}@bookTicker`))
+      : new Set(symbols.map(s => `${lower(s)}@aggTrade`));
 
-    // Compute desired stream names
-    const desiredBook  = new Set(symbols.map(s => `${lower(s)}@bookTicker`));
-    const desiredTrade = new Set(symbols.map(s => `${lower(s)}@aggTrade`));
-    const desired      = new Set([...desiredBook, ...desiredTrade]);
+    conn.desiredSubscriptions = desired;
 
-    const toSubscribe   = [...desired].filter(s => !this._activeSubscriptions.has(s));
-    const toUnsubscribe = [...this._activeSubscriptions].filter(s => !desired.has(s));
+    const toSub   = [...desired].filter(s => !conn.activeSubscriptions.has(s));
+    const toUnsub = [...conn.activeSubscriptions].filter(s => !desired.has(s));
 
-    const conn = this._connections.get("book") ?? this._connections.get("trade");
-    if (!conn || conn.ws?.readyState !== 1) {
-      // Connection not ready — will reconcile on open/reconnect.
-      return;
+    for (const batch of chunk(toSub, SUBSCRIPTION_BATCH_SIZE)) {
+      this._enqueueCtrl(conn, { method: "SUBSCRIBE", params: batch });
     }
-
-    // Batch subscribe
-    for (const batch of chunk(toSubscribe, SUBSCRIPTION_BATCH_SIZE)) {
-      this._enqueueCtrl({ method: "SUBSCRIBE", params: batch });
-    }
-    // Batch unsubscribe
-    for (const batch of chunk(toUnsubscribe, SUBSCRIPTION_BATCH_SIZE)) {
-      this._enqueueCtrl({ method: "UNSUBSCRIBE", params: batch });
+    for (const batch of chunk(toUnsub, SUBSCRIPTION_BATCH_SIZE)) {
+      this._enqueueCtrl(conn, { method: "UNSUBSCRIBE", params: batch });
     }
   }
 
-  _enqueueCtrl(message) {
-    this._ctrlQueue.push(message);
-    this._drainCtrlQueue();
+  _enqueueCtrl(conn, message) {
+    conn.controlQueue.push(message);
+    this._drainCtrlQueue(conn);
   }
 
-  _drainCtrlQueue() {
-    if (this._ctrlTimer != null || this._ctrlQueue.length === 0) return;
+  _drainCtrlQueue(conn) {
+    if (conn.ctrlTimer != null || conn.controlQueue.length === 0) return;
     const now = Date.now();
     const minInterval = 1_000 / MAX_SUBSCRIPTION_CTRL_PER_SECOND;
-    const wait = Math.max(0, minInterval - (now - this._lastCtrlSentAt));
-    this._ctrlTimer = setTimeout(() => {
-      this._ctrlTimer = null;
-      if (this._ctrlQueue.length === 0) return;
-      const msg = this._ctrlQueue.shift();
-      const id  = this._nextSubscriptionId++;
-      const conn = this._connections.get("book") ?? this._connections.get("trade");
-      if (conn?.ws?.readyState === 1) {
+    const wait = Math.max(0, minInterval - (now - conn.lastControlSentAt));
+    conn.ctrlTimer = setTimeout(() => {
+      conn.ctrlTimer = null;
+      if (conn.controlQueue.length === 0) return;
+      const msg = conn.controlQueue.shift();
+      const id  = conn.nextSubscriptionId++;
+      if (conn.ws?.readyState === 1) {
         try {
           conn.ws.send(JSON.stringify({ ...msg, id }));
-          this._lastCtrlSentAt = Date.now();
-          this.health.tickResearchPendingSubscriptionCount = this._ctrlQueue.length;
+          conn.lastControlSentAt = Date.now();
           // Track pending ack with timeout
           const timer = setTimeout(() => {
-            this._pendingAcks.delete(id);
+            conn.pendingAcks.delete(id);
             this.health.tickResearchCtrlErrorCount += 1;
           }, SUBSCRIPTION_ACK_TIMEOUT_MS);
-          this._pendingAcks.set(id, { method: msg.method, params: msg.params, timer });
+          conn.pendingAcks.set(id, { method: msg.method, params: msg.params, timer, connKind: conn.kind });
         } catch {
-          this._ctrlQueue.unshift(msg); // re-queue on send failure
+          conn.controlQueue.unshift(msg); // re-queue on send failure
         }
       }
-      if (this._ctrlQueue.length > 0) this._drainCtrlQueue();
+      if (conn.controlQueue.length > 0) this._drainCtrlQueue(conn);
     }, wait);
   }
 
-  _handleCtrlAck(id, error) {
-    const pending = this._pendingAcks.get(id);
+  _handleCtrlAck(conn, id, error) {
+    const pending = conn.pendingAcks.get(id);
     if (!pending) return;
     clearTimeout(pending.timer);
-    this._pendingAcks.delete(id);
+    conn.pendingAcks.delete(id);
     if (error) {
       this.health.tickResearchCtrlErrorCount += 1;
     } else {
       this.health.tickResearchCtrlAckCount += 1;
-      // Update active subscription set
       if (pending.method === "SUBSCRIBE") {
-        for (const stream of pending.params ?? []) this._activeSubscriptions.add(stream);
+        for (const stream of pending.params ?? []) conn.activeSubscriptions.add(stream);
       } else if (pending.method === "UNSUBSCRIBE") {
-        for (const stream of pending.params ?? []) this._activeSubscriptions.delete(stream);
+        for (const stream of pending.params ?? []) conn.activeSubscriptions.delete(stream);
       }
-      this.health.tickResearchActiveSubscriptionCount = this._activeSubscriptions.size;
     }
   }
 
@@ -348,6 +376,14 @@ export class CandidateTickStream {
       intentionalClose: false,
       reconnectTimer:  null,
       rotationTimer:   null,
+      // Per-connection subscription state (R-05 fix)
+      desiredSubscriptions: new Set(),
+      activeSubscriptions:  new Set(),
+      pendingAcks:          new Map(),
+      controlQueue:         [],
+      ctrlTimer:            null,
+      lastControlSentAt:    0,
+      nextSubscriptionId:   1,
     };
 
     try {
@@ -359,18 +395,15 @@ export class CandidateTickStream {
     this._connections.set(kind, state);
 
     state.ws.onopen = () => {
-      state.connectedAt   = Date.now();
+      state.connectedAt      = Date.now();
       state.reconnectAttempt = 0;
       this.health.tickResearchLastMessageAt = Date.now();
-      // Reconcile subscriptions on open
-      this._reconcileSubscriptions();
+      // Reconcile only this connection's subscriptions on open
+      this._reconcileSubscriptions(kind);
       // Schedule planned rotation
       state.rotationTimer = setTimeout(() => {
         if (!this.destroyed) {
-          state.plannedRotationCount++;
-          this.health.tickResearchPlannedRotationCount++;
-          state.intentionalClose = false; // allow reconnect
-          this._closeConnection(state, "planned-rotation");
+          this.rotateConnection(kind);
         }
       }, PLANNED_ROTATION_MS);
     };
@@ -384,7 +417,6 @@ export class CandidateTickStream {
       try {
         parsed = JSON.parse(event.data);
       } catch {
-        // Not valid JSON at all — do count as parse error
         this.health.tickResearchParseErrorCount += 1;
         return;
       }
@@ -392,14 +424,13 @@ export class CandidateTickStream {
       const msgKind = classifyMessage(parsed);
       switch (msgKind) {
         case "SUBSCRIPTION_ACK":
-          this._handleCtrlAck(parsed.id, null);
+          this._handleCtrlAck(state, parsed.id, null);
           state.lastAckAt = receivedAt;
           break;
         case "SUBSCRIPTION_ERROR":
-          this._handleCtrlAck(parsed.id, parsed.error);
+          this._handleCtrlAck(state, parsed.id, parsed.error);
           break;
         case "PING":
-          // Respond to ping
           try { state.ws.send(JSON.stringify({ pong: parsed.ping ?? Date.now() })); } catch {}
           break;
         case "COMBINED_MARKET": {
@@ -434,7 +465,6 @@ export class CandidateTickStream {
           break;
         }
         default:
-          // Unknown — don't increment parse error for genuinely unknown control msgs
           break;
       }
     };
@@ -450,17 +480,71 @@ export class CandidateTickStream {
     };
   }
 
-  _reconcileSubscriptions() {
-    // On reconnect, re-subscribe to all desired streams.
-    this._activeSubscriptions.clear();
-    const symbols = [...this.desired].sort();
-    const allStreams = [
-      ...symbols.map(s => `${lower(s)}@bookTicker`),
-      ...symbols.map(s => `${lower(s)}@aggTrade`),
-    ];
-    for (const batch of chunk(allStreams, SUBSCRIPTION_BATCH_SIZE)) {
-      this._enqueueCtrl({ method: "SUBSCRIBE", params: batch });
+  /**
+   * Planned rotation — closes the connection with onclose intact so the normal
+   * reconnect path fires.  Does NOT set intentionalClose = true.
+   */
+  rotateConnection(kind) {
+    const state = this._connections.get(kind);
+    if (!state || this.destroyed) return;
+
+    state.plannedRotationCount++;
+    this.health.tickResearchPlannedRotationCount++;
+    this.health.tickResearchLastRotationAt = Date.now();
+    this.health.tickResearchLastRotationReason = 'PLANNED_AGE_ROTATION';
+
+    this._closeConnectionForRotation(state);
+  }
+
+  _closeConnectionForRotation(state) {
+    clearTimeout(state.reconnectTimer);
+    clearTimeout(state.rotationTimer);
+
+    const ws = state.ws;
+    state.ws = null;
+
+    if (!ws) {
+      // Nothing to close — schedule immediate reconnect
+      this._scheduleReconnect(state);
+      return;
     }
+
+    // Replace handlers BEFORE closing so onclose can fire the reconnect
+    ws.onerror   = () => {};
+    ws.onmessage = null;
+    ws.onopen    = null;
+    ws.onclose   = () => {
+      if (!this.destroyed) {
+        this._scheduleReconnect(state);
+      }
+    };
+
+    try {
+      if (ws.readyState === 0) {
+        // Still connecting — close once open
+        ws.onopen = () => { try { ws.close(1000, "planned-rotation"); } catch {} };
+      } else if (ws.readyState === 1) {
+        ws.close(1000, "planned-rotation");
+      } else {
+        // Already closing/closed — just schedule reconnect
+        this._scheduleReconnect(state);
+      }
+    } catch {
+      this.health.tickResearchRotationFailureCount++;
+      this._scheduleReconnect(state);
+    }
+  }
+
+  /**
+   * Reconcile subscriptions for a single kind on reconnect.
+   * Clears only that connection's activeSubscriptions, not the other.
+   */
+  _reconcileSubscriptions(kind) {
+    const conn = this._connections.get(kind);
+    if (!conn) return;
+    // Clear stale active set — new socket has no subscriptions
+    conn.activeSubscriptions.clear();
+    this.reconcileConnectionSubscriptions(kind);
   }
 
   _scheduleReconnect(state) {
@@ -477,6 +561,7 @@ export class CandidateTickStream {
     state.intentionalClose = true;
     clearTimeout(state.reconnectTimer);
     clearTimeout(state.rotationTimer);
+    if (state.ctrlTimer != null) { clearTimeout(state.ctrlTimer); state.ctrlTimer = null; }
     const ws = state.ws;
     state.ws = null;
     if (!ws) return;

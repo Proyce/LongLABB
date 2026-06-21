@@ -65,10 +65,10 @@ describe('Long batch analysis export', () => {
     expect(result[0].closed).toBe(true);
   });
 
-  it('builds an analysis-first package with master files, summaries, schema, and 20 per-run CSVs', () => {
+  it('builds an analysis-first package with master files, summaries, schema, and 20 per-run CSVs', async () => {
     const trades = Array.from({ length: 20 }, (_, index) => trade({ run: index + 1 }));
     const descriptor = buildLongBatchDescriptors(trades)[0];
-    const result = buildLongBatchAnalysisFiles(trades, descriptor, { sideFilter: 'all' });
+    const result = await buildLongBatchAnalysisFiles(trades, descriptor, { sideFilter: 'all' });
     const paths = Object.keys(result.files);
 
     expect(paths.some(path => path.endsWith('/master/trades.csv'))).toBe(true);
@@ -81,7 +81,7 @@ describe('Long batch analysis export', () => {
     expect(result.manifest.counts.runs).toBe(20);
   });
 
-  it('separates research-clean, excluded, active, and signal-summary records', () => {
+  it('separates research-clean, excluded, active, and signal-summary records', async () => {
     const trades = [
       trade({ run: 1, id: 'clean', longCombosPositiveMatched: ['LONG_UNIVERSAL_CORE_V1'] }),
       trade({
@@ -94,7 +94,7 @@ describe('Long batch analysis export', () => {
       trade({ run: 3, id: 'active', closed: false, closedAt: null }),
     ];
     const descriptor = buildLongBatchDescriptors(trades)[0];
-    const result = buildLongBatchAnalysisFiles(trades, descriptor);
+    const result = await buildLongBatchAnalysisFiles(trades, descriptor);
     const path = suffix => Object.keys(result.files).find(file => file.endsWith(suffix));
 
     expect(result.files[path('/research_clean/closed_trades.csv')]).toContain('clean');
@@ -107,7 +107,7 @@ describe('Long batch analysis export', () => {
     expect(result.batchSummary.excludedClosedCount).toBe(1);
   });
 
-  it('marks excluded finalizations in the data-quality summary', () => {
+  it('marks excluded finalizations in the data-quality summary', async () => {
     const trades = [
       trade({ run: 1 }),
       trade({
@@ -118,13 +118,13 @@ describe('Long batch analysis export', () => {
       }),
     ];
     const descriptor = buildLongBatchDescriptors(trades)[0];
-    const result = buildLongBatchAnalysisFiles(trades, descriptor);
+    const result = await buildLongBatchAnalysisFiles(trades, descriptor);
     const qualityPath = Object.keys(result.files).find(path => path.endsWith('/summary/data_quality_summary.csv'));
 
     expect(result.files[qualityPath]).toContain('EXCLUDED:FROZEN_FINAL_PRICE');
   });
 
-  it('builds from an already-selected payload without cloning or scanning unrelated history', () => {
+  it('builds from an already-selected payload without cloning or scanning unrelated history', async () => {
     const selected = Array.from({ length: 20 }, (_, index) => trade({ run: index + 1 }));
     const fullHistory = [
       ...selected,
@@ -135,13 +135,13 @@ describe('Long batch analysis export', () => {
       })),
     ];
     const descriptor = buildLongBatchDescriptors(fullHistory).find(item => item.autoRunId === 'auto-batch-1');
-    const result = buildLongBatchAnalysisFiles(selected, descriptor, { alreadySelected: true });
+    const result = await buildLongBatchAnalysisFiles(selected, descriptor, { alreadySelected: true });
 
     expect(result.batchSummary.tradeCount).toBe(20);
     expect(result.batchSummary.runSummaries).toHaveLength(20);
   });
 
-  it('omits giant nested forensic objects from the analysis ZIP while retaining flattened fields', () => {
+  it('omits giant nested forensic objects from the analysis ZIP while retaining flattened fields', async () => {
     const huge = 'x'.repeat(100_000);
     const trades = [trade({
       run: 1,
@@ -152,7 +152,7 @@ describe('Long batch analysis export', () => {
       entrySnapshotFieldStatus: { huge },
     })];
     const descriptor = buildLongBatchDescriptors(trades)[0];
-    const result = buildLongBatchAnalysisFiles(trades, descriptor);
+    const result = await buildLongBatchAnalysisFiles(trades, descriptor);
     const masterPath = Object.keys(result.files).find(path => path.endsWith('/master/trades.csv'));
     const schemaPath = Object.keys(result.files).find(path => path.endsWith('/schema/columns.json'));
     const master = result.files[masterPath];
@@ -167,13 +167,13 @@ describe('Long batch analysis export', () => {
     });
   });
 
-  it('stores exceptional lifecycle evidence sparsely and keeps normal trades out of forensics', () => {
+  it('stores exceptional lifecycle evidence sparsely and keeps normal trades out of forensics', async () => {
     const trades = [
       trade({ run: 1, id: 'normal' }),
       trade({ run: 2, id: 'floor-miss', profitLockFloorMissed: true, boundedExitTickAudit: [[1, 100, 'B', 0]] }),
     ];
     const descriptor = buildLongBatchDescriptors(trades)[0];
-    const result = buildLongBatchAnalysisFiles(trades, descriptor);
+    const result = await buildLongBatchAnalysisFiles(trades, descriptor);
     const forensicPath = Object.keys(result.files).find(path => path.endsWith('/forensics/exit_events.jsonl'));
     const rows = result.files[forensicPath].trim().split('\n').filter(Boolean).map(JSON.parse);
     expect(rows).toHaveLength(1);

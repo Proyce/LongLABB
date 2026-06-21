@@ -44,28 +44,35 @@ export function deriveLongVolumeRole(candidate) {
   const cvdBull = cvd === 'BULL' || cvd === 'BULLISH';
   const cvdBear = cvd === 'BEAR' || cvd === 'BEARISH';
 
-  let positiveSignals = 0;
+  // qualifiedStructure = confirmed by trade-flow signals (not CVD alone).
+  // CVD is a positiveFlow signal but requires corroboration to count toward
+  // POSITIVE_STRUCTURE_AMPLIFIER — CVD BULL alone → NEUTRAL (R-15).
+  let positiveFlow = 0;    // CVD-based directional flow signal
+  let qualifiedStructure = 0; // Trade-flow structure signals (volAccel, buyRatio)
   let negativeSignals = 0;
 
-  if (cvdBull) positiveSignals++;
+  if (cvdBull) positiveFlow++;
   if (cvdBear) negativeSignals++;
 
   if (hasVolAccel) {
     const va = Number(volAccel);
-    if (va > 0.15) positiveSignals++;
+    if (va > 0.15) { positiveFlow++; qualifiedStructure++; }
     else if (va < -0.15) negativeSignals++;
   }
 
   if (hasBuyRatio) {
     const br = Number(buyRatio);
-    if (br > 0.55) positiveSignals++;
+    if (br > 0.55) { positiveFlow++; qualifiedStructure++; }
     else if (br < 0.45) negativeSignals++;
   }
 
-  if (positiveSignals >= 2) return LONG_VOLUME_ROLE.POSITIVE_STRUCTURE_AMPLIFIER;
   if (negativeSignals >= 2) return LONG_VOLUME_ROLE.NEGATIVE_STRUCTURE_AMPLIFIER;
-  if (positiveSignals === 1 && negativeSignals === 0) return LONG_VOLUME_ROLE.POSITIVE_STRUCTURE_AMPLIFIER;
-  if (negativeSignals === 1 && positiveSignals === 0) return LONG_VOLUME_ROLE.NEGATIVE_STRUCTURE_AMPLIFIER;
-  if (positiveSignals > 0 || negativeSignals > 0) return LONG_VOLUME_ROLE.NEUTRAL;
+
+  // POSITIVE_STRUCTURE_AMPLIFIER: positiveFlow signals present AND at least one
+  // qualifiedStructure (trade-flow) signal confirms. CVD BULL alone does not qualify.
+  if (positiveFlow >= 1 && qualifiedStructure >= 1) return LONG_VOLUME_ROLE.POSITIVE_STRUCTURE_AMPLIFIER;
+
+  if (negativeSignals === 1 && positiveFlow === 0) return LONG_VOLUME_ROLE.NEGATIVE_STRUCTURE_AMPLIFIER;
+  if (positiveFlow > 0 || negativeSignals > 0) return LONG_VOLUME_ROLE.NEUTRAL;
   return LONG_VOLUME_ROLE.UNQUALIFIED;
 }

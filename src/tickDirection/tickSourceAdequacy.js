@@ -74,7 +74,11 @@ export function evaluateTickSourceAdequacy(aggTrade = {}, book = {}, opts = {}) 
     : 'NONE';
 
   // ── Quality verdict logic ─────────────────────────────────────────────────
-  const warmEnough     = aggTradeWindowDurationMs >= t.warmupMinMs || bookWindowDurationMs >= t.warmupMinMs;
+  // For COMPLETE: both sources must individually be warm (AND, not OR)
+  const bothWarm   = aggTradeWindowDurationMs >= t.warmupMinMs && bookWindowDurationMs >= t.warmupMinMs;
+  const tradeWarm  = aggTradeWindowDurationMs >= t.warmupMinMs;
+  const bookWarm   = bookWindowDurationMs >= t.warmupMinMs;
+
   const tradeDense3s   = aggTradeEventCount3s  >= t.aggTradeMinCount3s;
   const tradeDense10s  = aggTradeEventCount10s >= t.aggTradeMinCount10s;
   const bookDense3s    = bookEventCount3s >= t.bookMinCount3s;
@@ -84,6 +88,7 @@ export function evaluateTickSourceAdequacy(aggTrade = {}, book = {}, opts = {}) 
   const bookGapOk      = bookMaximumGapMs    <= t.maxGapMs;
   const distinctOk     = aggTradeDistinctPriceCount >= t.distinctPriceMin || bookDistinctMidCount >= t.distinctPriceMin;
   const skewOk         = tradeBookTimestampSkewMs <= t.maxTradeBookSkewMs;
+  const outOfOrderOk   = aggTradeOutOfOrderRate <= (t.maxOutOfOrderRate ?? 0.05);
 
   let quality;
   const reasons = [];
@@ -91,31 +96,44 @@ export function evaluateTickSourceAdequacy(aggTrade = {}, book = {}, opts = {}) 
   if (!aggTradePresent && !bookTickerPresent) {
     quality = TICK_SOURCE_QUALITY.INSUFFICIENT;
     reasons.push('NO_SOURCES');
-  } else if (!warmEnough) {
-    quality = TICK_SOURCE_QUALITY.WARMING;
-    reasons.push('WARMUP_INCOMPLETE');
   } else if (aggTradePresent && bookTickerPresent) {
-    if (!skewOk) {
-      quality = TICK_SOURCE_QUALITY.CONFLICTED;
-      reasons.push('TRADE_BOOK_CLOCK_SKEW');
-    } else if (tradeDense3s && bookDense3s && tradeFresh && bookFresh && tradeGapOk && bookGapOk && distinctOk) {
-      quality = TICK_SOURCE_QUALITY.COMPLETE;
-    } else if ((!tradeDense3s || !tradeDense10s) && (!bookDense3s)) {
-      quality = TICK_SOURCE_QUALITY.PARTIAL_BOTH_SPARSE;
-      reasons.push('BOTH_SOURCES_SPARSE');
+    // Two-source branch: warmup check uses AND for COMPLETE
+    if (!bothWarm) {
+      quality = TICK_SOURCE_QUALITY.WARMING;
+      reasons.push('WARMUP_INCOMPLETE');
     } else if (!tradeFresh || !bookFresh) {
+      // Stale checked before sparse (spec ��C2 fix)
       quality = TICK_SOURCE_QUALITY.STALE;
       reasons.push('SOURCE_STALE');
+    } else if (!skewOk) {
+      quality = TICK_SOURCE_QUALITY.CONFLICTED;
+      reasons.push('TRADE_BOOK_CLOCK_SKEW');
+    } else if (!outOfOrderOk) {
+      quality = TICK_SOURCE_QUALITY.CONFLICTED;
+      reasons.push('HIGH_OUT_OF_ORDER_RATE');
+    } else if (tradeDense3s && bookDense3s && tradeGapOk && bookGapOk && distinctOk) {
+      quality = TICK_SOURCE_QUALITY.COMPLETE;
     } else {
       quality = TICK_SOURCE_QUALITY.PARTIAL_BOTH_SPARSE;
       reasons.push('PARTIAL_QUALITY');
     }
   } else if (aggTradePresent) {
-    quality = TICK_SOURCE_QUALITY.PARTIAL_TRADE_ONLY;
-    reasons.push('BOOK_SOURCE_ABSENT');
+    if (!tradeWarm) {
+      quality = TICK_SOURCE_QUALITY.WARMING;
+      reasons.push('WARMUP_INCOMPLETE');
+    } else {
+      quality = TICK_SOURCE_QUALITY.PARTIAL_TRADE_ONLY;
+      reasons.push('BOOK_SOURCE_ABSENT');
+    }
   } else {
-    quality = TICK_SOURCE_QUALITY.PARTIAL_BOOK_ONLY;
-    reasons.push('TRADE_SOURCE_ABSENT');
+    // bookTickerPresent only
+    if (!bookWarm) {
+      quality = TICK_SOURCE_QUALITY.WARMING;
+      reasons.push('WARMUP_INCOMPLETE');
+    } else {
+      quality = TICK_SOURCE_QUALITY.PARTIAL_BOOK_ONLY;
+      reasons.push('TRADE_SOURCE_ABSENT');
+    }
   }
 
   return {

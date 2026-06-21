@@ -21,7 +21,7 @@ describe('profit lock protection state machine', () => {
       profitLockLevelMarginPct: 5,
       profitLockStage: 'S1',
     }, 1000);
-    expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.PROTECTED);
+    expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_ARMED);
     // V2: local watcher is never "verified" (no exchange acknowledgement)
     expect(out.profitLockProtectionVerified).toBe(false);
     expect(out.profitLockOrderSubmitted).toBe(false);
@@ -49,7 +49,7 @@ describe('profit lock protection state machine', () => {
     }, 2000);
     // Floor must not be lowered
     expect(out.profitLockProtectedFloorPrice).toBe(102);
-    expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.PROTECTED);
+    expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_ARMED);
   });
 
   it('keeps an armed lock active even when the latest strategy update no longer reports active', () => {
@@ -66,7 +66,7 @@ describe('profit lock protection state machine', () => {
       profitLockLevelPrice: null,
     }, 3000);
     expect(out.profitLockStrategyActive).toBe(true);
-    expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.PROTECTED);
+    expect(out.profitLockProtectionState).toBe(PROFIT_LOCK_PROTECTION_STATE.LOCAL_WATCH_ARMED);
   });
 
   it('closes on a breached floor even after the trade is already negative', () => {

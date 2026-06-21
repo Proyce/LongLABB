@@ -7,8 +7,8 @@ describe('deriveLongVolumeRole', () => {
     expect(deriveLongVolumeRole(null)).toBe(LONG_VOLUME_ROLE.UNAVAILABLE);
   });
 
-  it('returns POSITIVE_STRUCTURE_AMPLIFIER for CVD=BULL alone', () => {
-    expect(deriveLongVolumeRole({ cvdLabel: 'BULL' })).toBe(LONG_VOLUME_ROLE.POSITIVE_STRUCTURE_AMPLIFIER);
+  it('returns NEUTRAL for CVD=BULL alone (R-15: requires trade-flow corroboration)', () => {
+    expect(deriveLongVolumeRole({ cvdLabel: 'BULL' })).toBe(LONG_VOLUME_ROLE.NEUTRAL);
   });
 
   it('returns NEGATIVE_STRUCTURE_AMPLIFIER for CVD=BEAR alone', () => {
@@ -28,8 +28,8 @@ describe('deriveLongVolumeRole', () => {
     expect(deriveLongVolumeRole({ cvdLabel: 'BULL', buyRatio: 0.35 })).toBe(LONG_VOLUME_ROLE.NEUTRAL);
   });
 
-  it('uses entryCvdLabel as fallback', () => {
-    expect(deriveLongVolumeRole({ entryCvdLabel: 'BULL' })).toBe(LONG_VOLUME_ROLE.POSITIVE_STRUCTURE_AMPLIFIER);
+  it('uses entryCvdLabel as fallback (NEUTRAL, not POSITIVE, without trade-flow corroboration)', () => {
+    expect(deriveLongVolumeRole({ entryCvdLabel: 'BULL' })).toBe(LONG_VOLUME_ROLE.NEUTRAL);
   });
 
   it('LONG_VOLUME_ROLE enum is frozen', () => {

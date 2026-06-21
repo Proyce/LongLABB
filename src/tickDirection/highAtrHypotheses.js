@@ -42,14 +42,31 @@ function tickVerdictDown(candidate) {
 
 // ── Positive hypotheses ───────────────────────────────────────────────────────
 
-export function evaluateHighAtrTrueTickUpCvdOkV1(candidate) {
+const SPREAD_THRESHOLD_PCT = 0.05; // 0.05% — spread < 0.05 percentage points
+
+export function evaluateHighAtrTrueTickUpCvdOkV1(candidate, hypothesisConfig = {}) {
+  const spreadThreshold = hypothesisConfig?.spreadThresholdPct ?? SPREAD_THRESHOLD_PCT;
+  const cvdLabel = candidate?.entryCvdLabel ?? candidate?.cvdLabel ?? null;
+  const cvdOk = cvdLabel === 'BULL' || cvdLabel === 'NEUT';
+  const cvdMissing = cvdLabel == null || cvdLabel === 'UNKNOWN';
+
+  if (cvdMissing) {
+    return {
+      hypothesisId: 'LONG_HIGH_ATR_TRUE_TICK_UP_CVD_OK_V1',
+      status: HIGH_ATR_HYPOTHESIS_STATUS.SHADOW_ONLY,
+      matched: false,
+      reason: 'CVD_MISSING',
+      ...BASE_SAFETY,
+    };
+  }
+
   const matched =
     isAtrActive(candidate) &&
     tickQualityOk(candidate) &&
     tickVerdictUp(candidate) &&
-    candidate?.entryCvdLabel !== 'BEAR' &&
+    cvdOk &&
     noHardAntiCombo(candidate) &&
-    Number(candidate?.spreadPct ?? 1) < 0.5;
+    Number(candidate?.spreadPct ?? Infinity) <= spreadThreshold;
 
   return {
     hypothesisId: 'LONG_HIGH_ATR_TRUE_TICK_UP_CVD_OK_V1',
@@ -59,8 +76,8 @@ export function evaluateHighAtrTrueTickUpCvdOkV1(candidate) {
   };
 }
 
-export function evaluateHighAtrTrueTickUpGateStrongV1(candidate) {
-  const base = evaluateHighAtrTrueTickUpCvdOkV1(candidate);
+export function evaluateHighAtrTrueTickUpGateStrongV1(candidate, hypothesisConfig = {}) {
+  const base = evaluateHighAtrTrueTickUpCvdOkV1(candidate, hypothesisConfig);
   const matched = base.matched && Number(candidate?.longGateScore ?? 0) >= 70;
   return {
     hypothesisId: 'LONG_HIGH_ATR_TRUE_TICK_UP_GATE_STRONG_V1',
@@ -70,12 +87,12 @@ export function evaluateHighAtrTrueTickUpGateStrongV1(candidate) {
   };
 }
 
-export function evaluateHighAtrTrueTickUpDnaV2_80_V1(candidate) {
-  const base = evaluateHighAtrTrueTickUpCvdOkV1(candidate);
+export function evaluateHighAtrTrueTickUpDnaV2_80_V1(candidate, hypothesisConfig = {}) {
+  const base = evaluateHighAtrTrueTickUpCvdOkV1(candidate, hypothesisConfig);
   const dnaScore = Number(
-    candidate?.bestDnaLongV2Score ?? candidate?.bestDnaLongScore ?? 0,
+    candidate?.bestDnaLongScoreV2Shadow ?? candidate?.bestDnaLongScore ?? 0,
   );
-  const dnaVersion = candidate?.bestDnaLongV2Score != null ? 'V2'
+  const dnaVersion = candidate?.bestDnaLongScoreV2Shadow != null ? 'V2_SHADOW'
     : candidate?.bestDnaLongScore != null ? 'V1_FALLBACK'
     : 'UNAVAILABLE';
   const matched = base.matched && dnaScore >= 80 && dnaVersion !== 'UNAVAILABLE';
@@ -95,11 +112,25 @@ export function evaluateHighAtrGreenMicroTrueTickV1(candidate) {
     candidate?.immediateGreenImpulse === true ||
     candidate?.greenImpulseDetected === true;
 
+  const cvdLabel = candidate?.entryCvdLabel ?? candidate?.cvdLabel ?? null;
+  const cvdOk = cvdLabel === 'BULL' || cvdLabel === 'NEUT';
+  const cvdMissing = cvdLabel == null || cvdLabel === 'UNKNOWN';
+
+  if (cvdMissing) {
+    return {
+      hypothesisId: 'LONG_HIGH_ATR_GREEN_MICRO_TRUE_TICK_V1',
+      status: HIGH_ATR_HYPOTHESIS_STATUS.SHADOW_ONLY,
+      matched: false,
+      reason: 'CVD_MISSING',
+      ...BASE_SAFETY,
+    };
+  }
+
   const matched =
     isAtrActive(candidate) &&
     tickVerdictUp(candidate) &&
     hasMicroGreen &&
-    candidate?.entryCvdLabel !== 'BEAR' &&
+    cvdOk &&
     tickQualityOk(candidate);
 
   return {
@@ -191,9 +222,9 @@ export function evaluateHighAtrStaleEvidenceAntiV1(candidate) {
  */
 export function evaluateAllHighAtrHypotheses(candidate, config = {}) {
   const positive = [
-    evaluateHighAtrTrueTickUpCvdOkV1(candidate),
-    evaluateHighAtrTrueTickUpGateStrongV1(candidate),
-    evaluateHighAtrTrueTickUpDnaV2_80_V1(candidate),
+    evaluateHighAtrTrueTickUpCvdOkV1(candidate, config),
+    evaluateHighAtrTrueTickUpGateStrongV1(candidate, config),
+    evaluateHighAtrTrueTickUpDnaV2_80_V1(candidate, config),
     evaluateHighAtrGreenMicroTrueTickV1(candidate),
   ];
   const risk = [
@@ -208,9 +239,10 @@ export function evaluateAllHighAtrHypotheses(candidate, config = {}) {
   const matchedRisk     = risk.filter(h => h.matched).map(h => h.hypothesisId);
 
   return {
-    highAtrPositiveHypothesesMatched: matchedPositive,
-    highAtrRiskHypothesesMatched:     matchedRisk,
-    highAtrHypothesisEvaluations:     [...positive, ...risk],
+    highAtrPositiveHypothesesMatched:  matchedPositive,
+    highAtrRiskHypothesesMatched:      matchedRisk,
+    highAtrHypothesisEvaluations:      [...positive, ...risk],
+    highAtrHypothesisEvaluationVersion: 'HIGH_ATR_HYPOTHESES_V1_2026_06',
     logOnly:           true,
     canAffectExecution: false,
     executionApplied:  false,

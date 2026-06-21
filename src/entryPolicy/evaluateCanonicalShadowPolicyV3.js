@@ -57,11 +57,11 @@ export function evaluateCanonicalShadowPolicyV3(inputs = {}) {
   const gatePass    = inputs?.longGateWouldPass === true;
   const gateFail    = inputs?.longGateWouldPass === false;
 
-  const dnaV2Score  = finite(inputs?.bestDnaLongV2Score)  ?? null;
-  const dnaV1Score  = finite(inputs?.bestDnaLongScore)     ?? null;
+  const dnaV2Score  = finite(inputs?.bestDnaLongScoreV2Shadow) ?? null;
+  const dnaV1Score  = finite(inputs?.bestDnaLongScore)          ?? null;
   const dnaScore    = dnaV2Score ?? dnaV1Score ?? null;
-  const dnaVersion  = dnaV2Score != null ? 'V2' : dnaV1Score != null ? 'V1_FALLBACK' : 'UNAVAILABLE';
-  const dnaV2Tier   = inputs?.bestDnaLongV2Tier ?? inputs?.bestDnaLongTier ?? null;
+  const dnaVersion  = dnaV2Score != null ? 'V2_SHADOW' : dnaV1Score != null ? 'V1_FALLBACK' : 'UNAVAILABLE';
+  const dnaV2Tier   = inputs?.bestDnaLongTierV2Shadow ?? null;
 
   const dangerTier        = inputs?.longAuditDangerTier   ?? null;
   const hardDanger        = dangerTier === 'HARD_DANGER';
@@ -136,15 +136,18 @@ export function evaluateCanonicalShadowPolicyV3(inputs = {}) {
   if (!dataOk) unknownReasons.push('DATA_QUALITY_INSUFFICIENT');
   if (dataConflicted) { negativeCount++; blockReasons.push('DATA_CONFLICTED'); }
 
+  // ── Entry-time data completeness check (replaces finalizationDataQuality) ──
+  const entryDataIncomplete =
+    inputs?.longFilterDataQuality === 'INCOMPLETE' ||
+    inputs?.entrySnapshotCompletenessStatus === 'INCOMPLETE';
+
   // ── HARD_BLOCK verdict ────────────────────────────────────────────────────
-  const finalizationInvalid = inputs?.finalizationDataQuality === 'INVALID';
   if (
-    finalizationInvalid || hardDanger || hardAntiCombo || dataConflicted ||
+    hardDanger || hardAntiCombo || dataConflicted ||
     (cvdBear && tickDown && tickQualityAdequate) ||
     (highAtrRiskHigh && tickQualityAdequate)
   ) {
     const hardBlockReasons = [];
-    if (finalizationInvalid)                  hardBlockReasons.push('FINALIZATION_INVALID');
     if (hardDanger)                           hardBlockReasons.push('HARD_DANGER_AUDIT');
     if (hardAntiCombo)                        hardBlockReasons.push('HARD_ANTI_COMBO');
     if (dataConflicted)                       hardBlockReasons.push('DATA_CONFLICTED');

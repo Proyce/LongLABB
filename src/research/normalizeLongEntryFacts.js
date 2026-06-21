@@ -215,6 +215,12 @@ export function normalizeLongEntryFacts(trade, computedAt = 0) {
       bookImbalanceMean3s: t.marketTickBookImbalanceMean3s ?? null,
       tradeBookAgreement3s: t.marketTickTradeBookAgreement3s ?? null,
       sequenceSignature10: t.marketTickSequenceSignature10 ?? null,
+      // Tick source adequacy + High-ATR V2 scores (R-14)
+      tickSourceQuality: t.tickSourceQuality ?? t.entryTelemetry?.tickSourceQuality ?? null,
+      highAtrLongOpportunityScore: t.highAtrLongOpportunityScore ?? t.entryTelemetry?.highAtrLongOpportunityScore ?? null,
+      highAtrLongRiskScore: t.highAtrLongRiskScore ?? t.entryTelemetry?.highAtrLongRiskScore ?? null,
+      highAtrLongOpportunityTier: t.highAtrLongOpportunityTier ?? t.entryTelemetry?.highAtrLongOpportunityTier ?? null,
+      highAtrLongRiskTier: t.highAtrLongRiskTier ?? t.entryTelemetry?.highAtrLongRiskTier ?? null,
     },
 
     market: {
@@ -313,5 +319,11 @@ export function flattenLongEntryFacts(facts) {
     marketTickBookImbalanceMean3s: f.tickMicrostructure.bookImbalanceMean3s,
     marketTickTradeBookAgreement3s: f.tickMicrostructure.tradeBookAgreement3s,
     marketTickSequenceSignature10: f.tickMicrostructure.sequenceSignature10,
+    // Tick source adequacy + High-ATR V2 scores (R-14)
+    tickSourceQuality: f.tickMicrostructure.tickSourceQuality,
+    highAtrLongOpportunityScore: f.tickMicrostructure.highAtrLongOpportunityScore,
+    highAtrLongRiskScore: f.tickMicrostructure.highAtrLongRiskScore,
+    highAtrLongOpportunityTier: f.tickMicrostructure.highAtrLongOpportunityTier,
+    highAtrLongRiskTier: f.tickMicrostructure.highAtrLongRiskTier,
   };
 }

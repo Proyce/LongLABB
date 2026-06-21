@@ -3,11 +3,11 @@
 import { strToU8, zip } from 'fflate';
 import { buildLongBatchAnalysisFiles } from './longBatchExport.js';
 
-self.onmessage = event => {
+self.onmessage = async event => {
   const { requestId, trades, descriptor, options } = event.data ?? {};
   try {
     self.postMessage({ requestId, type: 'progress', phase: 'PREPARING', percent: 10 });
-    const packageData = buildLongBatchAnalysisFiles(trades, descriptor, options);
+    const packageData = await buildLongBatchAnalysisFiles(trades, descriptor, options);
     const entries = Object.fromEntries(
       Object.entries(packageData.files).map(([path, content]) => [path, strToU8(content)]),
     );

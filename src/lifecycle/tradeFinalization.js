@@ -3,6 +3,63 @@
 
 import { computeClosedLongPnl } from '../domain/longTradeMath.js';
 
+// ── Floor-outcome classification ──────────────────────────────────────────────
+// Must be called AFTER finalizeClosedSample has resolved the committed exit price.
+// Uses the committed price, not the trigger/observed price.
+export const PROFIT_LOCK_FLOOR_OUTCOME_REASON = Object.freeze({
+  EXIT_AT_OR_ABOVE_FLOOR:         'EXIT_AT_OR_ABOVE_FLOOR',
+  EXIT_BELOW_FLOOR:               'EXIT_BELOW_FLOOR',
+  NOT_APPLICABLE_TRIGGER:         'NOT_APPLICABLE_TRIGGER',
+  UNKNOWN_COMMITTED_EXIT:         'UNKNOWN_COMMITTED_EXIT',
+  FINALIZATION_INVALID:           'FINALIZATION_INVALID',
+  ENTRY_FALLBACK_USED:            'ENTRY_FALLBACK_USED',
+});
+
+/**
+ * Classify the profit-lock floor outcome using the COMMITTED exit price.
+ * Must never be called with the trigger/observed price — only with the final price.
+ *
+ * @returns 'PRESERVED' | 'MISSED' | 'UNKNOWN' | 'NOT_APPLICABLE'
+ */
+export function classifyProfitLockFloorOutcome({
+  triggerReason,
+  requestedFloorPrice,
+  committedExitPrice,
+  stopLossPrice,
+  finalizationDataQuality,
+  autoEndUsedEntryPriceFallback = false,
+  finalPriceIsEntryFallback = false,
+}) {
+  const fn = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
+  if (triggerReason !== 'PROFIT_LOCK') {
+    return { profitLockFloorOutcome: 'NOT_APPLICABLE', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.NOT_APPLICABLE_TRIGGER };
+  }
+
+  // Any invalid finalization → UNKNOWN (never claim PRESERVED or MISSED for bad data)
+  if (finalizationDataQuality === 'INVALID' || finalizationDataQuality === 'FINALIZATION_FAILED') {
+    return { profitLockFloorOutcome: 'UNKNOWN', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.FINALIZATION_INVALID };
+  }
+  if (autoEndUsedEntryPriceFallback === true || finalPriceIsEntryFallback === true) {
+    return { profitLockFloorOutcome: 'UNKNOWN', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.ENTRY_FALLBACK_USED };
+  }
+
+  const exit  = fn(committedExitPrice);
+  const floor = fn(requestedFloorPrice);
+
+  if (exit == null) {
+    return { profitLockFloorOutcome: 'UNKNOWN', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.UNKNOWN_COMMITTED_EXIT };
+  }
+  if (floor == null) {
+    return { profitLockFloorOutcome: 'UNKNOWN', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.UNKNOWN_COMMITTED_EXIT };
+  }
+
+  if (exit >= floor) {
+    return { profitLockFloorOutcome: 'PRESERVED', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.EXIT_AT_OR_ABOVE_FLOOR };
+  }
+  return { profitLockFloorOutcome: 'MISSED', profitLockFloorOutcomeReason: PROFIT_LOCK_FLOOR_OUTCOME_REASON.EXIT_BELOW_FLOOR };
+}
+
 export const TRADE_FINALIZATION_VERSION = 'LONG_FINALIZATION_V2_2026_06';
 export const DEFAULT_FINAL_PRICE_MAX_AGE_MS = 30_000;
 export const DEFAULT_FINAL_PRICE_WARN_AGE_MS = 10_000;

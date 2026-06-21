@@ -10,6 +10,7 @@ import {
 import { classifyTickPattern, getAtrTier, getHighAtrContextLabel } from "./tickDirectionLabels.js";
 import { scoreTickDirection } from "./tickDirectionScore.js";
 import { flattenTickDirectionFeatures } from "./tickDirection.flatten.js";
+import { evaluateTickSourceAdequacy } from "./tickSourceAdequacy.js";
 
 const finite = value => Number.isFinite(Number(value)) ? Number(value) : null;
 const round = value => Number.isFinite(value) ? Number(value.toFixed(6)) : null;
@@ -54,6 +55,24 @@ function emptySnapshot({ symbol, entryTime, entryPrice, atrPct, missingReasons, 
     marketTickDirection30s: TICK_DIRECTION.INSUFFICIENT,
     symbol,
     entryTickAtrPctObserved: finite(atrPct),
+    // High-ATR V2 score fields (R-14)
+    marketTickSignalStrengthScore:         0,
+    highAtrLongOpportunityScore:           0,
+    highAtrLongOpportunityTier:            'INSUFFICIENT',
+    highAtrLongRiskScore:                  0,
+    highAtrLongRiskTier:                   'INSUFFICIENT',
+    marketTickScoreCalibrationStatus:      'UNCALIBRATED_RULE_MODEL',
+    marketTickConfidenceInterpretation:    'INSUFFICIENT_DATA',
+    highAtrOpportunityCalibrationStatus:   'UNCALIBRATED_RULE_MODEL',
+    highAtrRiskCalibrationStatus:          'UNCALIBRATED_RULE_MODEL',
+    // Tick source adequacy (R-14)
+    tickSourceQuality:                     'INSUFFICIENT',
+    tickSourceQualityReasons:              ['EMPTY_SNAPSHOT'],
+    tickSourceCalibrationStatus:           'UNCALIBRATED_RULE_MODEL',
+    // Tick evidence availability
+    tickEvidenceRequired:                  false,
+    tickEvidenceAvailable:                 false,
+    tickEvidenceQualified:                 false,
     ...TICK_DIRECTION_SAFETY,
   });
 }
@@ -136,6 +155,26 @@ export function captureTickDirectionSnapshot({
   const bookAdequate = sourceQualifies(bookFeatures, resolved);
   const canonicalSource = tradeAdequate ? "AGG_TRADE" : bookAdequate ? "BOOK_TICKER_MID" : "INSUFFICIENT";
   const canonicalFeatures = canonicalSource === "AGG_TRADE" ? tradeFeatures : bookFeatures;
+
+  // Compute source adequacy (R-12/§C2) — wires evaluateTickSourceAdequacy into the snapshot
+  const tradeFreshnessMs = trades.length ? Math.max(0, entryTime - tickEventTime(trades.at(-1))) : Infinity;
+  const bookFreshnessMs  = books.length  ? Math.max(0, entryTime - tickEventTime(books.at(-1)))  : Infinity;
+  const sourceAdequacy = evaluateTickSourceAdequacy(
+    {
+      eventCount3s:       tradeFeatures.window3000?.eventCount  ?? 0,
+      eventCount10s:      tradeFeatures.window10000?.eventCount ?? 0,
+      windowDurationMs:   tradeFeatures.window10000?.durationMs ?? 0,
+      freshnessMs:        tradeFreshnessMs,
+      distinctPriceCount: tradeFeatures.window3000?.distinctPriceCount ?? 0,
+    },
+    {
+      eventCount3s:     bookFeatures.window3000?.eventCount  ?? 0,
+      eventCount10s:    bookFeatures.window10000?.eventCount ?? 0,
+      windowDurationMs: bookFeatures.window10000?.durationMs ?? 0,
+      freshnessMs:      bookFreshnessMs,
+      distinctMidCount: bookFeatures.window3000?.distinctPriceCount ?? 0,
+    },
+  );
   const aggressor = computeAggressorFlowFeatures(trades, entryTime, resolved);
   const bookPressure = computeBookPressureFeatures(books, entryTime);
   const agreements = {
@@ -209,6 +248,13 @@ export function captureTickDirectionSnapshot({
     marketTickAtrTier: getAtrTier(atrPct, resolved),
     highAtrTickContextLabel: getHighAtrContextLabel(atrPct, pattern.primaryPattern, resolved),
     ...score,
+    // Tick source adequacy result (R-12/§C2)
+    tickSourceQuality:          sourceAdequacy.tickSourceQuality,
+    tickSourceQualityReasons:   sourceAdequacy.tickSourceQualityReasons,
+    tickSourceCalibrationStatus: sourceAdequacy.tickSourceCalibrationStatus,
+    tickEvidenceRequired:  false,
+    tickEvidenceAvailable: sourceAdequacy.tickSourceQuality !== 'INSUFFICIENT' && sourceAdequacy.tickSourceQuality !== 'WARMING',
+    tickEvidenceQualified: sourceAdequacy.tickSourceQuality === 'COMPLETE',
     ...TICK_DIRECTION_SAFETY,
   });
 }

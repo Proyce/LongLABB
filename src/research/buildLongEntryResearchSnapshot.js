@@ -36,6 +36,8 @@ import { scoreLongPostFee10Entry } from '../scoring/longPostFee10/index.js';
 import { evaluateSniperLongGateLogOnly } from '../longGate/sniperLongGateLogOnly.js';
 import { evaluateLongCombos, evaluateLongTickResearchHypotheses } from '../combos/longComboRegistry.js';
 import { evaluateLongWinningSetupMatches } from '../filters/evaluateLongWinningSetupMatches.js';
+import { evaluateAllHighAtrHypotheses } from '../tickDirection/highAtrHypotheses.js';
+import { evaluateCanonicalShadowPolicyV3 } from '../entryPolicy/evaluateCanonicalShadowPolicyV3.js';
 import { freezeLongFilterSnapshot } from '../filters/longFilterSnapshot.js';
 import { computeAdaptiveAes } from '../entryPolicy/adaptiveAes.js';
 import { evaluateEntryPolicyLogOnly } from '../entryPolicy/evaluateEntryPolicyLogOnly.js';
@@ -515,7 +517,18 @@ export function buildLongEntryResearchSnapshot({
     longMicroConfirmObsVersion: 'LONG_MICRO_CONFIRM_OBS_V1_2026_06_17',
   };
 
-  // Stage 14b: Evaluate curated entry-time Winning Setup matches. Outcome-only
+  // Stage 14b: Evaluate High-ATR V2 shadow hypotheses.
+  // Requires: tick snapshot, gate, danger audit, BestDNA V2, combos.
+  // LOG_ONLY — cannot affect execution.
+  let highAtrHypotheses = null;
+  try {
+    highAtrHypotheses = evaluateAllHighAtrHypotheses(workingTrade);
+  } catch (err) {
+    componentErrors.push({ component: 'HIGH_ATR_HYPOTHESES', message: err?.message ?? String(err) });
+  }
+  workingTrade = { ...workingTrade, ...highAtrHypotheses };
+
+  // Stage 14b-ws: Evaluate curated entry-time Winning Setup matches. Outcome-only
   // catalog entries are excluded by the evaluator to prevent entry leakage.
   let winningSetupMatches = null;
   try {
@@ -539,6 +552,16 @@ export function buildLongEntryResearchSnapshot({
     componentErrors.push({ component: 'ENTRY_POLICY', message: err?.message ?? String(err) });
   }
   workingTrade = { ...workingTrade, ...entryPolicyFlat };
+
+  // Stage 14d: Evaluate canonical shadow policy V3 (GATE + DNA, LOG_ONLY).
+  // Must run after High-ATR hypotheses, BestDNA V2, combos, and entry policy.
+  let canonicalPolicy = null;
+  try {
+    canonicalPolicy = evaluateCanonicalShadowPolicyV3(workingTrade);
+  } catch (err) {
+    componentErrors.push({ component: 'CANONICAL_SHADOW_POLICY', message: err?.message ?? String(err) });
+  }
+  workingTrade = { ...workingTrade, ...canonicalPolicy };
 
   // Stage 16: Build filter snapshot (values only) BEFORE finalizing quality, so
   // a filter-snapshot failure is recorded as a component error that the final
